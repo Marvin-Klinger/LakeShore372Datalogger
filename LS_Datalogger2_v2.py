@@ -7,7 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1
+from TemperatureCalibration import cal_mk1
 
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):
@@ -15,7 +15,7 @@ def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup
         resistance = np.empty(1)
         quadrature = np.empty(1)
         power = np.empty(1)
-        time = np.empty(1)
+        sample_time = np.empty(1)
         elapsed = np.empty(1)
 
         for _ in range(number_of_samples):
@@ -24,7 +24,7 @@ def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup
             resistance = resistance.append(readings['resistance'])
             quadrature = quadrature.append(readings['quadrature'])
             power = power.append(readings['power'])
-            time = time.append(datetime.now())
+            sample_time = sample_time.append(datetime.now())
             elapsed = elapsed.append(timedelta.total_seconds())
 
     return time, timedelta, resistance, quadrature, power
@@ -47,6 +47,7 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
 
         data = pandas.concat([data, series_for_concat], ignore_index=True)
     return data
+
 
 def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
                                     configure_inputs=False, delimeter=',', ip_address="192.168.0.12",
@@ -139,18 +140,21 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
 
     instrument_372.set_scanner_status(input_channel=thermometer_channel, status=False)
     time.sleep(4)
-    last_thermometer_results = acquire_samples(instrument_372, measurements_per_scan, thermometer_channel, time_at_beginning_of_experiment)
+    last_thermometer_results = acquire_samples(instrument_372, measurements_per_scan, thermometer_channel,
+                                               time_at_beginning_of_experiment)
 
     while True:
         # measure the sample
         instrument_372.set_scanner_status(input_channel=sample_channel, status=False)
         time.sleep(4)
-        sample_data = acquire_samples(instrument_372, measurements_per_scan, sample_channel, time_at_beginning_of_experiment)
+        sample_data = acquire_samples(instrument_372, measurements_per_scan, sample_channel,
+                                      time_at_beginning_of_experiment)
 
         # measure the thermometer
         instrument_372.set_scanner_status(input_channel=thermometer_channel, status=False)
         time.sleep(4)
-        thermometer_results = acquire_samples(instrument_372, measurements_per_scan, thermometer_channel, time_at_beginning_of_experiment)
+        thermometer_results = acquire_samples(instrument_372, measurements_per_scan, thermometer_channel,
+                                              time_at_beginning_of_experiment)
 
         two_last_thermometer_data = pandas.concat([last_thermometer_results, thermometer_results])
 
@@ -242,7 +246,8 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         axs[1].errorbar(temperature_plot, resistance_plot, yerr=resistance_error_plot, label='Sample', fmt='o')
         axs[1].set_ylabel('Sample Resistance [Ohms]')
         axs[1].set_xlabel('Temperature [K]')
-        axs[1].set_title('R_sample[Ohm]= ' + str(int(resistance_sample)) + ' ± ' + str(int(resistance_sample_err)), fontsize=10)
+        axs[1].set_title('R_sample[Ohm]= ' + str(int(resistance_sample)) + ' ± ' + str(int(resistance_sample_err)),
+                         fontsize=10)
 
         # draw the new information for the user
         fig.canvas.draw()
