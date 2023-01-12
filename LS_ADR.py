@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from TemperatureCalibration import cal_ser6, cal_ser8
-from LS_Datalogger2_v2 import acquire_samples, cal_generic_ruthenium_oxide_2k
+from LS_Datalogger2_v2 import acquire_samples
 from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1
 
 
@@ -89,10 +89,14 @@ def record_resistance_single_channel(channel=1, configure_input=False, ip_addres
         power_thermometer_err = sample_data["P"].std()
         time_thermometer_err = sample_data["Elapsed time"].std()
 
+        # calculate the temperature during the resistivity measurement
         temperature = cal_mk1(resistance_thermometer)
-        temperature_error = cal_mk1(resistance_thermometer - resistance_thermometer_err / 2)
-        temperature_error = temperature - cal_mk1(resistance_thermometer + resistance_thermometer_err / 2)
         temperature_plot.append(temperature)
+
+        # calculate temperature error
+        temperature_upper = cal_mk1(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk1(resistance_thermometer + resistance_thermometer_err)
+        temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error_plot.append(temperature_error)
 
         time_plot.append(time_thermometer)
