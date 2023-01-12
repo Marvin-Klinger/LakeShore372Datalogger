@@ -241,6 +241,7 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
             axs[0].set_title('T > 4K')
 
         axs[0].set_ylabel('Temperature [K]')
+        axs[0].yscale('log')
         axs[0].set_xlabel('Elapsed time [s]')
 
         # draw the R(t) plot
