@@ -50,7 +50,7 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
 
 
 def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
-                                    configure_inputs=False, delimeter=',', ip_address="192.168.0.12",
+                                    configure_inputs=False, delimiter=',', ip_address="192.168.0.12",
                                     measurements_per_scan=100):
     time_at_beginning_of_experiment = datetime.now()
 
@@ -68,41 +68,41 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         "Readings at the time of sample measurement.")
     lgr.info("Data field names and types:")
     lgr.info(
-        "Timestamp" + delimeter +
-        "Elapsed_time" + delimeter +
-        "Elapsed_time_error" + delimeter +
-        "Thermometer_temperature" + delimeter +
-        "Thermometer_temperature_error" + delimeter +
-        "Resistance_thermometer" + delimeter +
-        "Resistance_thermometer_error" + delimeter +
-        "Quadrature_thermometer" + delimeter +
-        "Quadrature_thermometer_error" + delimeter +
-        "Power_thermometer" + delimeter +
-        "Power_thermometer_error" + delimeter +
-        "Resistance_sample" + delimeter +
-        "Resistance_sample_error" + delimeter +
-        "Quadrature_sample" + delimeter +
-        "Quadrature_sample_error" + delimeter +
-        "Power_sample" + delimeter +
+        "Timestamp" + delimiter +
+        "Elapsed_time" + delimiter +
+        "Elapsed_time_error" + delimiter +
+        "Thermometer_temperature" + delimiter +
+        "Thermometer_temperature_error" + delimiter +
+        "Resistance_thermometer" + delimiter +
+        "Resistance_thermometer_error" + delimiter +
+        "Quadrature_thermometer" + delimiter +
+        "Quadrature_thermometer_error" + delimiter +
+        "Power_thermometer" + delimiter +
+        "Power_thermometer_error" + delimiter +
+        "Resistance_sample" + delimiter +
+        "Resistance_sample_error" + delimiter +
+        "Quadrature_sample" + delimiter +
+        "Quadrature_sample_error" + delimiter +
+        "Power_sample" + delimiter +
         "Power_sample_error"
     )
     lgr.info(
-        "[YYYY-MM-DD hh:mm:ss,###]" + delimeter +
-        "second" + delimeter +
-        "second" + delimeter +
-        "Kelvin" + delimeter +
-        "Kelvin" + delimeter +
-        "Ohm" + delimeter +
-        "Ohm" + delimeter +
-        "iOhm" + delimeter +
-        "iOhm" + delimeter +
-        "Watt" + delimeter +
-        "Watt" + delimeter +
-        "Ohm" + delimeter +
-        "Ohm" + delimeter +
-        "iOhm" + delimeter +
-        "iOhm" + delimeter +
-        "Watt" + delimeter +
+        "[YYYY-MM-DD hh:mm:ss,###]" + delimiter +
+        "second" + delimiter +
+        "second" + delimiter +
+        "Kelvin" + delimiter +
+        "Kelvin" + delimiter +
+        "Ohm" + delimiter +
+        "Ohm" + delimiter +
+        "iOhm" + delimiter +
+        "iOhm" + delimiter +
+        "Watt" + delimiter +
+        "Watt" + delimiter +
+        "Ohm" + delimiter +
+        "Ohm" + delimiter +
+        "iOhm" + delimiter +
+        "iOhm" + delimiter +
+        "Watt" + delimiter +
         "Watt"
     )
 
@@ -168,14 +168,15 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         power_thermometer_err = two_last_thermometer_data["P"].std()
         time_thermometer_err = two_last_thermometer_data["Elapsed time"].std()
 
-        # calculate the temperature and error during the resistivity measurement
+        # calculate the temperature during the resistivity measurement
         temperature = cal_mk1(resistance_thermometer)
-        temperature_error = cal_mk1(resistance_thermometer - resistance_thermometer_err / 2)
-        temperature_error = temperature - cal_mk1(
-            resistance_thermometer + resistance_thermometer_err / 2)
         temperature_plot.append(temperature)
+
+        # calculate temperature error
+        temperature_upper = cal_mk1(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk1(resistance_thermometer + resistance_thermometer_err)
+        temperature_error = temperature_lower/2 + temperature_upper/2 - temperature
         temperature_error_plot.append(temperature_error)
-        # TODO: test the temperature error calculation
 
         # process the sample data
         resistance_sample = sample_data["R"].mean()
@@ -197,22 +198,22 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
 
         # log aggregated Data
         lgr.info(
-            str(datetime.now()) + delimeter +
-            str(time_sample) + delimeter +
-            str(time_sample_err) + delimeter +
-            str(temperature) + delimeter +
-            str(temperature_error) + delimeter +
-            str(resistance_thermometer) + delimeter +
-            str(resistance_thermometer_err) + delimeter +
-            str(quadrature_thermometer) + delimeter +
-            str(quadrature_thermometer_err) + delimeter +
-            str(power_thermometer) + delimeter +
-            str(power_thermometer_err) + delimeter +
-            str(resistance_sample) + delimeter +
-            str(resistance_sample_err) + delimeter +
-            str(quadrature_sample) + delimeter +
-            str(quadrature_sample_err) + delimeter +
-            str(power_sample) + delimeter +
+            str(datetime.now()) + delimiter +
+            str(time_sample) + delimiter +
+            str(time_sample_err) + delimiter +
+            str(temperature) + delimiter +
+            str(temperature_error) + delimiter +
+            str(resistance_thermometer) + delimiter +
+            str(resistance_thermometer_err) + delimiter +
+            str(quadrature_thermometer) + delimiter +
+            str(quadrature_thermometer_err) + delimiter +
+            str(power_thermometer) + delimiter +
+            str(power_thermometer_err) + delimiter +
+            str(resistance_sample) + delimiter +
+            str(resistance_sample_err) + delimiter +
+            str(quadrature_sample) + delimiter +
+            str(quadrature_sample_err) + delimiter +
+            str(power_sample) + delimiter +
             str(power_sample_err))
 
         if save_raw_data:
