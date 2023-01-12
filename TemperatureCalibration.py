@@ -18,7 +18,7 @@ def cal_ser6(x):
 
 
 def cal_mk1(x):
-    return 4.17542532415951 * (np.ln(((x - 974.133666737063)/706.468770240909)))**(-1/0.345)
+    return 4.17542532415951 * (np.log(((x - 974.133666737063)/706.468770240909)))**(-1/0.345)
 
 
 def show_plot(save_calibrated_file=False, filename=""):

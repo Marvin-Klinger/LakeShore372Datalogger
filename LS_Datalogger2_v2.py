@@ -7,7 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_ser6, cal_ser8
+from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1
 
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):
@@ -47,13 +47,6 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
 
         data = pandas.concat([data, series_for_concat], ignore_index=True)
     return data
-
-
-def cal_generic_ruthenium_oxide_2k(x):
-    x = 11.2 - np.log(x - 1400)
-    return np.exp(
-        -70.2510845934072 + 431.958495397983 * x - 1243.35486928959 * x ** 2 + 2079.851674501 * x ** 3 - 2221.82752732689 * x ** 4 + 1569.15315029492 * x ** 5 - 725.225041039035 * x ** 6 + 201.344808133961 * x ** 7 + -21.1752645798767 * x ** 8 - 5.69301101480164 * x ** 9 + 2.35844703642311 * x ** 10 - 0.259954447641701 * x ** 11 - 0.0187741721390738 * x ** 12 + 0.00669498065063297 * x ** 13 - 4.39871175653045E-4 * x ** 14)
-
 
 def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
                                     configure_inputs=False, delimeter=',', ip_address="192.168.0.12",
@@ -172,9 +165,9 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         time_thermometer_err = two_last_thermometer_data["Elapsed time"].std()
 
         # calculate the temperature and error during the resistivity measurement
-        temperature = cal_generic_ruthenium_oxide_2k(resistance_thermometer)
-        temperature_error = cal_generic_ruthenium_oxide_2k(resistance_thermometer - resistance_thermometer_err / 2)
-        temperature_error = temperature - cal_generic_ruthenium_oxide_2k(
+        temperature = cal_mk1(resistance_thermometer)
+        temperature_error = cal_mk1(resistance_thermometer - resistance_thermometer_err / 2)
+        temperature_error = temperature - cal_mk1(
             resistance_thermometer + resistance_thermometer_err / 2)
         temperature_plot.append(temperature)
         temperature_error_plot.append(temperature_error)
@@ -225,9 +218,10 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
             #
             # save the raw data from the instrument - this gets large fast!
             thermometer_results.to_csv(
-                './' + str(time_at_beginning_of_experiment) + 'ADR_RAW_Data_thermometer' + filename + '.csv', mode='a')
-            sample_data('./' + str(time_at_beginning_of_experiment) + 'ADR_RAW_Data_sample' + filename + '.csv',
-                        mode='a')
+                './' + str(time_at_beginning_of_experiment) + 'ADR_RAW_Data_thermometer' + filename + '.csv', mode='a',
+                index=False, header=False)
+            sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'ADR_RAW_Data_sample' + filename + '.csv',
+                               mode='a', index=False, header=False)
 
         # reset the display for the next draw call
         axs[0].clear()
