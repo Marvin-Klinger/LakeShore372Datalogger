@@ -7,7 +7,6 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_ser6, cal_ser8
 from LS_Datalogger2_v2 import acquire_samples
 from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1
 
