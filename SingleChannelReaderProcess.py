@@ -62,7 +62,12 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
 
     """Read from the queue; this spawns as a separate Process"""
     while True:
-        sample_data = queue.get()  # Read from the queue and do nothing
+        if queue.qsize() == 0:
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            time.sleep(0.05)
+            continue
+        sample_data = queue.get()  # Read from the queue
         resistance_thermometer = sample_data["R"].mean()
         quadrature_thermometer = sample_data["iR"].mean()
         power_thermometer = sample_data["P"].mean()
@@ -87,18 +92,18 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         resistance_plot.append(resistance_thermometer)
         resistance_error_plot.append(resistance_thermometer_err)
 
-        lgr.info(
-            str(datetime.now()) + delimiter +
-            str(time_thermometer) + delimiter +
-            str(time_thermometer_err) + delimiter +
-            str(temperature) + delimiter +
-            str(temperature_error) + delimiter +
-            str(resistance_thermometer) + delimiter +
-            str(resistance_thermometer_err) + delimiter +
-            str(quadrature_thermometer) + delimiter +
-            str(quadrature_thermometer_err) + delimiter +
-            str(power_thermometer) + delimiter +
-            str(power_thermometer_err))
+        # lgr.info(
+        #     str(datetime.now()) + delimiter +
+        #     str(time_thermometer) + delimiter +
+        #     str(time_thermometer_err) + delimiter +
+        #     str(temperature) + delimiter +
+        #     str(temperature_error) + delimiter +
+        #     str(resistance_thermometer) + delimiter +
+        #     str(resistance_thermometer_err) + delimiter +
+        #     str(quadrature_thermometer) + delimiter +
+        #     str(quadrature_thermometer_err) + delimiter +
+        #     str(power_thermometer) + delimiter +
+        #     str(power_thermometer_err))
 
         if save_raw_data:
             # no longer necessary, as data is now saved incrementally (with mode='a')
@@ -106,8 +111,9 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
             # data_sample = pandas.concat([data_sample, results])
             #
             # save the raw data from the instrument - this gets large fast!
-            sample_data('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
-                        mode='a', index=False, header=False)
+            #sample_data('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
+            #            mode='a', index=False, header=False)
+            print("would save")
 
         axs[0].clear()
         axs[1].clear()
@@ -174,6 +180,7 @@ if __name__ == "__main__":
     _filename = "ADR"
     save_raw_data = True
     ls_data_queue = Queue()  # writer() writes to ls_data_queue from _this_ process
+
     visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment, filename=_filename)
     read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=1)
     visualizer_process.join()

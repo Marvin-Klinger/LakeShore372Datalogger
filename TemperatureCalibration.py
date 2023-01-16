@@ -84,4 +84,4 @@ def calibrate_all_files_in_dir(ser_number=0, directory=""):
 
 
 #calibrate_all_files_in_dir(6)
-show_plot()
+#show_plot()
