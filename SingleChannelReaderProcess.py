@@ -92,18 +92,18 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         resistance_plot.append(resistance_thermometer)
         resistance_error_plot.append(resistance_thermometer_err)
 
-        # lgr.info(
-        #     str(datetime.now()) + delimiter +
-        #     str(time_thermometer) + delimiter +
-        #     str(time_thermometer_err) + delimiter +
-        #     str(temperature) + delimiter +
-        #     str(temperature_error) + delimiter +
-        #     str(resistance_thermometer) + delimiter +
-        #     str(resistance_thermometer_err) + delimiter +
-        #     str(quadrature_thermometer) + delimiter +
-        #     str(quadrature_thermometer_err) + delimiter +
-        #     str(power_thermometer) + delimiter +
-        #     str(power_thermometer_err))
+        lgr.info(
+            str(datetime.now()) + delimiter +
+            str(time_thermometer) + delimiter +
+            str(time_thermometer_err) + delimiter +
+            str(temperature) + delimiter +
+            str(temperature_error) + delimiter +
+            str(resistance_thermometer) + delimiter +
+            str(resistance_thermometer_err) + delimiter +
+            str(quadrature_thermometer) + delimiter +
+            str(quadrature_thermometer_err) + delimiter +
+            str(power_thermometer) + delimiter +
+            str(power_thermometer_err))
 
         if save_raw_data:
             # no longer necessary, as data is now saved incrementally (with mode='a')
@@ -111,9 +111,8 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
             # data_sample = pandas.concat([data_sample, results])
             #
             # save the raw data from the instrument - this gets large fast!
-            #sample_data('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
-            #            mode='a', index=False, header=False)
-            print("would save")
+            sample_data('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
+                        mode='a', index=False, header=False)
 
         axs[0].clear()
         axs[1].clear()

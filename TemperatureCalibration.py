@@ -35,7 +35,7 @@ def show_plot(save_calibrated_file=False, filename=""):
     data_with_increased_resistance = raw_data.loc[raw_data['resistance'] > 2900]
     calibrated_data = data_with_increased_resistance[['time', 'resistance']].copy()
 
-    calibrated_data['temperature'] = calibrated_data['resistance'].apply(cal_mk1())
+    calibrated_data['temperature'] = calibrated_data['resistance'].apply(cal_ser6)
     calibrated_data.plot(x='time', y='temperature', kind='scatter')
 
     print("Minimal Temperature reached: " + str(calibrated_data['temperature'].min()))
