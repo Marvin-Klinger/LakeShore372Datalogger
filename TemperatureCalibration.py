@@ -49,9 +49,6 @@ def cal_mk4(x):
         return 0.583704981084618 * (np.log(((x + 927.546890248635) / 2114.96434715406))) ** (-1 / 0.345)
 
 
-def cal_mk4(x):
-
-
 def show_plot(save_calibrated_file=False, filename=""):
     if filename == "":
         filename = askopenfilename(initialdir=r'/home/marvin/Nextcloud/Uni/Masterarbeit_Marvin/35_Messdaten_ADR')
