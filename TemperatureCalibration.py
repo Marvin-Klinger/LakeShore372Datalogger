@@ -21,6 +21,37 @@ def cal_mk1(x):
     return 4.17542532415951 * (np.log(((x - 974.133666737063)/706.468770240909)))**(-1/0.345)
 
 
+def cal_mk1a(x):
+    return 1.4360138613965 * (np.log((x / 1448.30330553877))) ** (-1 / 0.345)
+
+
+def cal_mk2(x):
+    return 5.79932922661894 * (np.log(((x - 1204.52243625155) / 451.516270863735))) ** (-1 / 0.345)
+
+
+def cal_mk2a(x):
+    return 1.19449771640497 * (np.log((x / 1350.65650744707))) ** (-1 / 0.345)
+
+
+def cal_mk3(x):
+    if x > 2900:
+        # more precise at lower temperature
+        return 0.315915896272482 * (np.log(((x + 1874.50552748311) / 2907.47986525929))) ** (-1 / 0.345)
+    else:
+        return 0.47964313772239 * (np.log(((x +1025.38141190532) / 2225.92222846437))) ** (-1 / 0.345)
+
+
+def cal_mk4(x):
+    if x > 2850:
+        # more precise at lower temperature
+        return 0.398384267309045 * (np.log(((x + 1710.66844432221) / 2724.93512315828))) ** (-1 / 0.345)
+    else:
+        return 0.583704981084618 * (np.log(((x + 927.546890248635) / 2114.96434715406))) ** (-1 / 0.345)
+
+
+def cal_mk4(x):
+
+
 def show_plot(save_calibrated_file=False, filename=""):
     if filename == "":
         filename = askopenfilename(initialdir=r'/home/marvin/Nextcloud/Uni/Masterarbeit_Marvin/35_Messdaten_ADR')
