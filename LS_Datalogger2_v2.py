@@ -240,7 +240,8 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
             axs[0].set_title('T > 4K')
 
         axs[0].set_ylabel('Temperature [K]')
-        #axs[0].yscale('log')
+        axs[0].set_yscale('log')
+
         axs[0].set_xlabel('Elapsed time [s]')
 
         # draw the R(t) plot
@@ -255,4 +256,5 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         fig.canvas.flush_events()
 
 
-#model372_thermometer_and_sample(1, 1, "test")
+if __name__ == "__main__":
+    model372_thermometer_and_sample(1, 2, "He3Cal_MK3_MK4_2ndRun", True)
