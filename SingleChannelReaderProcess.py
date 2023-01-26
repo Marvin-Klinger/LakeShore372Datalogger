@@ -1,4 +1,7 @@
 from multiprocessing import Process, Queue
+
+import numpy as np
+
 from LS_Datalogger2_v2 import acquire_samples
 from lakeshore import Model372
 from lakeshore import Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, \
@@ -7,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1
+from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk3
 
 
 def visualize_single_channel(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
@@ -78,13 +81,14 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk1(resistance_thermometer)
+        temperature = cal_mk3(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk1(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk1(resistance_thermometer + resistance_thermometer_err)
+        temperature_upper = cal_mk3(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk3(resistance_thermometer + resistance_thermometer_err)
         temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+        temperature_error = np.absolute(temperature_error)
         temperature_error_plot.append(temperature_error)
 
         time_plot.append(time_thermometer)
@@ -111,7 +115,7 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
             # data_sample = pandas.concat([data_sample, results])
             #
             # save the raw data from the instrument - this gets large fast!
-            sample_data('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
+            sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
                         mode='a', index=False, header=False)
 
         axs[0].clear()
@@ -176,7 +180,7 @@ def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_p
 if __name__ == "__main__":
     time_at_beginning_of_experiment = datetime.now()
     measurements_per_scan = 70
-    _filename = "ADR"
+    _filename = "ADR_7030_fine_MK03"
     save_raw_data = True
     ls_data_queue = Queue()  # writer() writes to ls_data_queue from _this_ process
 
