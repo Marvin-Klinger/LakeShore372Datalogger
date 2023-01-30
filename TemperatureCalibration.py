@@ -63,7 +63,7 @@ def show_plot(save_calibrated_file=False, filename=""):
     data_with_increased_resistance = raw_data.loc[raw_data['resistance'] > 2900]
     calibrated_data = data_with_increased_resistance[['time', 'resistance']].copy()
 
-    calibrated_data['temperature'] = calibrated_data['resistance'].apply(cal_ser6)
+    calibrated_data['temperature'] = calibrated_data['resistance'].apply(cal_mk3)
     calibrated_data.plot(x='time', y='temperature', kind='scatter')
 
     print("Minimal Temperature reached: " + str(calibrated_data['temperature'].min()))
@@ -109,7 +109,8 @@ def calibrate_all_files_in_dir(ser_number=0, directory=""):
         calibrated_data.to_csv(filename[:-3] + 'cal')
 
 # calibrate_all_files_in_dir(6)
-
+if __name__ == "__main__":
+    show_plot()
 
 #calibrate_all_files_in_dir(6)
 #show_plot()

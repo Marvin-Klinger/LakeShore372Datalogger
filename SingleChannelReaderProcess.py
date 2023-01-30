@@ -63,6 +63,16 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
     plt.ion()
     fig, axs = plt.subplots(2, 1)
 
+    axs[0].set_ylabel('Resistance [Ohm]')
+    axs[0].set_title("Waiting for Data")
+    axs[1].set_ylabel('Calibrated temperature [K]')
+    axs[1].set_yscale('log')
+    axs[1].set_ylim(0.01, 10)
+    axs[1].set_xlabel('Time [s]')
+
+    axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+    axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+
     """Read from the queue; this spawns as a separate Process"""
     while True:
         if queue.qsize() == 0:
@@ -116,27 +126,19 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
             #
             # save the raw data from the instrument - this gets large fast!
             sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
-                        mode='a', index=False, header=False)
+                               mode='a', index=False, header=False)
 
-        axs[0].clear()
-        axs[1].clear()
-
-        # draw the R(t) plot
-        axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='sample', fmt='o')
+        # axs[0].clear()
+        # axs[1].clear()
+        axs[0].set_data(time_plot, resistance_plot)
+        axs[1].set_data(time_plot, temperature_plot)
         axs[0].set_title('R = ' + str(int(resistance_thermometer)) + '±' + str(
             int(resistance_thermometer_err)) + ' Ω  T_cal = ' + str(int(1000 * temperature)) + ' ± ' + str(
             int(1000 * temperature_error)) + ' mK')
 
-        axs[0].set_ylabel('Resistance [Ohm]')
         # axs[0].set_xlabel('Elapsed time [s]')
 
         # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-        axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, label='calibrated', fmt='o')
-        axs[1].set_ylabel('Calibrated temperature [K]')
-        axs[1].set_yscale('log')
-        axs[1].set_ylim(0.01, 30)
-        axs[1].set_xlabel('Time [s]')
-
         # draw the new information for the user
         fig.canvas.draw()
         fig.canvas.flush_events()
@@ -168,7 +170,7 @@ def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_p
                           filename='resistance_single_channel', save_raw_data=True):
     """Start the reader processes and return all in a list to the caller"""
     all_reader_procs = list()
-    ### reader_p() reads from qq as a separate process...
+    # reader_p() reads from qq as a separate process...
     reader_p = Process(target=visualize_single_channel, args=(queue, time_at_beginning_of_experiment,
                                                               measurements_per_scan, delimeter, filename,
                                                               save_raw_data))
