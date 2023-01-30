@@ -134,7 +134,7 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, label='calibrated', fmt='o')
         axs[1].set_ylabel('Calibrated temperature [K]')
         axs[1].set_yscale('log')
-        axs[1].set_ylim(0.01, 300)
+        axs[1].set_ylim(0.01, 30)
         axs[1].set_xlabel('Time [s]')
 
         # draw the new information for the user
@@ -180,7 +180,7 @@ def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_p
 if __name__ == "__main__":
     time_at_beginning_of_experiment = datetime.now()
     measurements_per_scan = 70
-    _filename = "ADR_7030_fine_MK03"
+    _filename = "ADR_Na05K05_2_fine_MK03_dyna"
     save_raw_data = True
     ls_data_queue = Queue()  # writer() writes to ls_data_queue from _this_ process
 
