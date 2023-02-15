@@ -73,14 +73,18 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
     axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
     axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
 
-    """Read from the queue; this spawns as a separate Process"""
     while True:
+        # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
             fig.canvas.draw()
             fig.canvas.flush_events()
             time.sleep(0.05)
             continue
+
+        # new data has arrived, start working with it
         sample_data = queue.get()  # Read from the queue
+
+        # get mean values and standarddev of all quantities
         resistance_thermometer = sample_data["R"].mean()
         quadrature_thermometer = sample_data["iR"].mean()
         power_thermometer = sample_data["P"].mean()
@@ -97,7 +101,8 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         # calculate temperature error
         temperature_upper = cal_mk3(resistance_thermometer - resistance_thermometer_err)
         temperature_lower = cal_mk3(resistance_thermometer + resistance_thermometer_err)
-        temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+        #temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+        temperature_error = temperature_upper - temperature_lower
         temperature_error = np.absolute(temperature_error)
         temperature_error_plot.append(temperature_error)
 
