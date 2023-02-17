@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value
 
 import numpy as np
 
@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk3
+from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk4
 
 
 def visualize_single_channel(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
@@ -95,14 +95,14 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk3(resistance_thermometer)
+        temperature = cal_mk4(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk3(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk3(resistance_thermometer + resistance_thermometer_err)
-        #temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
-        temperature_error = temperature_upper - temperature_lower
+        temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
+        # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+        temperature_error = (temperature_upper - temperature_lower) / 2
         temperature_error = np.absolute(temperature_error)
         temperature_error_plot.append(temperature_error)
 
@@ -125,23 +125,27 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
             str(power_thermometer_err))
 
         if save_raw_data:
-            # no longer necessary, as data is now saved incrementally (with mode='a')
-            # data_thermometer = pandas.concat([data_thermometer, results])
-            # data_sample = pandas.concat([data_sample, results])
-            #
             # save the raw data from the instrument - this gets large fast!
             sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
                                mode='a', index=False, header=False)
 
-        # axs[0].clear()
-        # axs[1].clear()
-        axs[0].set_data(time_plot, resistance_plot)
-        axs[1].set_data(time_plot, temperature_plot)
-        axs[0].set_title('R = ' + str(int(resistance_thermometer)) + '±' + str(
-            int(resistance_thermometer_err)) + ' Ω  T_cal = ' + str(int(1000 * temperature)) + ' ± ' + str(
-            int(1000 * temperature_error)) + ' mK')
+        axs[0].clear()
+        axs[1].clear()
 
-        # axs[0].set_xlabel('Elapsed time [s]')
+        # axs[0].set_data(time_plot, resistance_plot)
+        # axs[1].set_data(time_plot, temperature_plot)
+
+        axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
+            round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(round(1000 * temperature, 1)) + ' ± ' + str(
+            round(1000 * temperature_error, 1)) + ' mK')
+
+        axs[0].set_xlabel('Elapsed time [s]')
+        axs[0].set_ylabel('Resistance [Ohm]')
+        axs[1].set_ylabel('Calibrated temperature [K]')
+        axs[1].set_yscale('log')
+
+        axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+        axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
 
         # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
         # draw the new information for the user
@@ -173,9 +177,6 @@ def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, conf
 
 def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimeter=',',
                           filename='resistance_single_channel', save_raw_data=True):
-    """Start the reader processes and return all in a list to the caller"""
-    all_reader_procs = list()
-    # reader_p() reads from qq as a separate process...
     reader_p = Process(target=visualize_single_channel, args=(queue, time_at_beginning_of_experiment,
                                                               measurements_per_scan, delimeter, filename,
                                                               save_raw_data))
@@ -185,13 +186,15 @@ def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_p
 
 
 if __name__ == "__main__":
-    time_at_beginning_of_experiment = datetime.now()
-    measurements_per_scan = 70
+    """Use these options to configure the measurement"""
+    measurements_per_scan = 200
     _filename = "ADR_Na05K05_2_fine_MK03_dyna"
-    save_raw_data = True
-    ls_data_queue = Queue()  # writer() writes to ls_data_queue from _this_ process
+    _save_raw_data = True
+    _lakeshore_channel = 1
 
-    visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment, filename=_filename)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=1)
+    time_at_beginning_of_experiment = datetime.now()
+    ls_data_queue = Queue()
+    visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment,
+                                               save_raw_data=_save_raw_data, filename=_filename)
+    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel)
     visualizer_process.join()
-    print("main end")

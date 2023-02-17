@@ -23,7 +23,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
     lgr1.addHandler(fh)
-    lgr1.info("Measurement of dual thermometer resistivity (1) MK3 with Lake Shore 372 AC Bridge")
+    lgr1.info("Measurement of dual thermometer resistivity (1) MK4 with Lake Shore 372 AC Bridge")
     lgr1.info("Data is aggregated with " + str(measurements_per_scan) + " samples for every line of this log.")
     lgr1.info("This file does not contain raw data!")
     lgr1.info("Data field names and types:")
@@ -61,7 +61,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
     lgr2.addHandler(fh)
-    lgr2.info("Measurement of dual thermometer resistivity (2) MK2 with Lake Shore 372 AC Bridge")
+    lgr2.info("Measurement of dual thermometer resistivity (2) MK4 with Lake Shore 372 AC Bridge")
     lgr2.info("Data is aggregated with " + str(measurements_per_scan) + " samples for every line of this log.")
     lgr2.info("This file does not contain raw data!")
     lgr2.info("Data field names and types:")
@@ -130,13 +130,13 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk3(resistance_thermometer)
+        temperature = cal_mk4(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk3(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk3(resistance_thermometer + resistance_thermometer_err)
-        temperature_error = np.absolute(temperature_lower / 2 + temperature_upper / 2 - temperature)
+        temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
+        temperature_error = np.absolute(temperature_upper-temperature_lower)/2
         temperature_error_plot.append(temperature_error)
 
         time_plot.append(time_thermometer)
@@ -158,8 +158,9 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
             str(power_thermometer_err))
 
         if save_raw_data:
-            sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data_A_' + filename + '.csv',
-                               mode='a', index=False, header=False)
+            sample_data.to_csv(
+                './' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data_A_' + filename + '.csv',
+                mode='a', index=False, header=False)
 
         sample_data_b = queue_b.get()  # Read from the queue
         resistance_thermometer2 = sample_data_b["R"].mean()
@@ -172,13 +173,13 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         time_thermometer_err2 = sample_data_b["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature2 = cal_mk3(resistance_thermometer2)
+        temperature2 = cal_mk4(resistance_thermometer2)
         temperature_plot2.append(temperature2)
 
         # calculate temperature error
-        temperature_upper2 = cal_mk3(resistance_thermometer2 - resistance_thermometer_err2)
-        temperature_lower2 = cal_mk3(resistance_thermometer2 + resistance_thermometer_err2)
-        temperature_error2 = np.absolute(temperature_lower2 / 2 + temperature_upper2 / 2 - temperature2)
+        temperature_upper2 = cal_mk4(resistance_thermometer2 - resistance_thermometer_err2)
+        temperature_lower2 = cal_mk4(resistance_thermometer2 + resistance_thermometer_err2)
+        temperature_error2 = np.absolute(temperature_upper2-temperature_lower2)/2
         temperature_error_plot2.append(temperature_error2)
 
         time_plot2.append(time_thermometer2)
@@ -209,11 +210,11 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         # draw the R(t) plot
         axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
         axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
-        axs[0].set_title('R_1 = ' + str(int(resistance_thermometer)) + '±' + str(
-            int(resistance_thermometer_err)) + ' Ω  T_cal_1 = ' + str(int(1000 * temperature)) + ' ± ' + str(
-            int(1000 * temperature_error)) + ' mK' + '    R_2 = ' + str(int(resistance_thermometer2)) + '±' + str(
-            int(resistance_thermometer_err2)) + ' Ω  T_cal_2 = ' + str(int(1000 * temperature2)) + ' ± ' + str(
-            int(1000 * temperature_error2)) + ' mK')
+        axs[0].set_title('R_1 = ' + str(resistance_thermometer) + '±' + str(
+            round(resistance_thermometer_err)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature)) + ' ± ' + str(
+            round(1000 * temperature_error)) + ' mK' + '    R_2 = ' + str(round(resistance_thermometer2)) + '±' + str(
+            round(resistance_thermometer_err2)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2)) + ' ± ' + str(
+            round(1000 * temperature_error2)) + ' mK')
 
         axs[0].set_ylabel('Resistance [Ohm]')
         # axs[0].set_xlabel('Elapsed time [s]')
@@ -223,7 +224,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         axs[1].errorbar(time_plot2, temperature_plot2, yerr=temperature_error_plot2, label='Chan2', fmt='o')
         axs[1].set_ylabel('Calibrated temperature [K]')
         axs[1].set_yscale('log')
-        axs[1].set_ylim(0.01, 50)
+        #axs[1].set_ylim(0.02, 3)
         axs[1].set_xlabel('Time [s]')
 
         # draw the new information for the user
@@ -275,15 +276,15 @@ def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, mea
 
 
 if __name__ == "__main__":
-    time_at_beginning_of_experiment = datetime.now()
-    measurements_per_scan = 70
+    measurements_per_scan = 200
     _filename = "ADR_MK03_MK02"
-    save_raw_data = True
+    _save_raw_data = True
+
+    time_at_beginning_of_experiment = datetime.now()
     ls_data_queue_a = Queue()  # writer() writes to ls_data_queue from _this_ process
     ls_data_queue_b = Queue()  # writer() writes to ls_data_queue from _this_ process
-
     visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_a, time_at_beginning_of_experiment,
-                                               filename=_filename)
+                                               filename=_filename, save_raw_data=_save_raw_data)
     read_dual_channel(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment, channel_a=1, channel_b=2)
     visualizer_process.join()
     print("main end")
