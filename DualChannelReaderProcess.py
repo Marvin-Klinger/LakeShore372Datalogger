@@ -136,7 +136,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         # calculate temperature error
         temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
         temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
-        temperature_error = np.absolute(temperature_upper-temperature_lower)/2
+        temperature_error = np.absolute(temperature_upper - temperature_lower) / 2
         temperature_error_plot.append(temperature_error)
 
         time_plot.append(time_thermometer)
@@ -179,7 +179,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         # calculate temperature error
         temperature_upper2 = cal_mk4(resistance_thermometer2 - resistance_thermometer_err2)
         temperature_lower2 = cal_mk4(resistance_thermometer2 + resistance_thermometer_err2)
-        temperature_error2 = np.absolute(temperature_upper2-temperature_lower2)/2
+        temperature_error2 = np.absolute(temperature_upper2 - temperature_lower2) / 2
         temperature_error_plot2.append(temperature_error2)
 
         time_plot2.append(time_thermometer2)
@@ -224,7 +224,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         axs[1].errorbar(time_plot2, temperature_plot2, yerr=temperature_error_plot2, label='Chan2', fmt='o')
         axs[1].set_ylabel('Calibrated temperature [K]')
         axs[1].set_yscale('log')
-        #axs[1].set_ylim(0.02, 3)
+        # axs[1].set_ylim(0.02, 3)
         axs[1].set_xlabel('Time [s]')
 
         # draw the new information for the user
@@ -276,7 +276,7 @@ def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, mea
 
 
 if __name__ == "__main__":
-    measurements_per_scan = 200
+    _measurements_per_scan = 200
     _filename = "ADR_MK03_MK02"
     _save_raw_data = True
 
@@ -284,7 +284,8 @@ if __name__ == "__main__":
     ls_data_queue_a = Queue()  # writer() writes to ls_data_queue from _this_ process
     ls_data_queue_b = Queue()  # writer() writes to ls_data_queue from _this_ process
     visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_a, time_at_beginning_of_experiment,
-                                               filename=_filename, save_raw_data=_save_raw_data)
+                                               filename=_filename, save_raw_data=_save_raw_data,
+                                               measurements_per_scan=_measurements_per_scan)
     read_dual_channel(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment, channel_a=1, channel_b=2)
     visualizer_process.join()
     print("main end")
