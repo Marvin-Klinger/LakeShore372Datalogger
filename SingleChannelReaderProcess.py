@@ -175,10 +175,10 @@ def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, conf
         queue.put(sample_data)
 
 
-def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimeter=',',
+def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
                           filename='resistance_single_channel', save_raw_data=True):
-    reader_p = Process(target=visualize_single_channel, args=(queue, time_at_beginning_of_experiment,
-                                                              measurements_per_scan, delimeter, filename,
+    reader_p = Process(target=visualize_single_channel, args=(queue, _time_at_beginning_of_experiment,
+                                                              measurements_per_scan, delimiter, filename,
                                                               save_raw_data))
     reader_p.daemon = True
     reader_p.start()  # Launch reader_p() as another proc
