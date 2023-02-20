@@ -187,7 +187,7 @@ def start_data_visualizer(queue, time_at_beginning_of_experiment, measurements_p
 
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
-    measurements_per_scan = 200
+    _measurements_per_scan = 200
     _filename = "ADR_Na05K05_2_fine_MK03_dyna"
     _save_raw_data = True
     _lakeshore_channel = 1
@@ -195,6 +195,7 @@ if __name__ == "__main__":
     time_at_beginning_of_experiment = datetime.now()
     ls_data_queue = Queue()
     visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment,
-                                               save_raw_data=_save_raw_data, filename=_filename)
+                                               save_raw_data=_save_raw_data, filename=_filename,
+                                               measurements_per_scan=_measurements_per_scan)
     read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel)
     visualizer_process.join()
