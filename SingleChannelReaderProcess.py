@@ -13,8 +13,14 @@ import matplotlib.pyplot as plt
 from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk4
 
 
+def on_close(thread_stop_indicator):
+    print('Closed Figure!')
+    thread_stop_indicator.value = True
+
+
 def visualize_single_channel(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
-                             filename='resistance_single_channel', save_raw_data=True):
+                             filename='resistance_single_channel', save_raw_data=True,
+                             thread_stop_indicator=Value('b', False)):
     lgr = logging.getLogger('resistance1')
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler('./' + str(time_at_beginning_of_experiment) + 'ADR_Data_' + filename + '.csv')
@@ -62,6 +68,7 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
 
     plt.ion()
     fig, axs = plt.subplots(2, 1)
+    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
 
     axs[0].set_ylabel('Resistance [Ohm]')
     axs[0].set_title("Waiting for Data")
@@ -154,7 +161,7 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
 
 
 def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, configure_input=False,
-                        ip_address="192.168.0.12", measurements_per_scan=70):
+                        ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False)):
     """"""
     instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
 
@@ -173,16 +180,19 @@ def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, conf
     while True:
         sample_data = acquire_samples(instrument_372, measurements_per_scan, channel, _time_at_beginning_of_experiment)
         queue.put(sample_data)
+        if thread_stop_indicator:
+            break
 
 
 def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
-                          filename='resistance_single_channel', save_raw_data=True):
-    reader_p = Process(target=visualize_single_channel, args=(queue, _time_at_beginning_of_experiment,
-                                                              measurements_per_scan, delimiter, filename,
-                                                              save_raw_data))
-    reader_p.daemon = True
-    reader_p.start()  # Launch reader_p() as another proc
-    return reader_p
+                          filename='resistance_single_channel', save_raw_data=True,
+                          thread_stop_indicator=Value('b', False)):
+    visualizer = Process(target=visualize_single_channel, args=(queue, _time_at_beginning_of_experiment,
+                                                                measurements_per_scan, delimiter, filename,
+                                                                save_raw_data, thread_stop_indicator))
+    visualizer.daemon = True
+    visualizer.start()  # Launch reader_p() as another proc
+    return visualizer
 
 
 if __name__ == "__main__":
@@ -193,9 +203,13 @@ if __name__ == "__main__":
     _lakeshore_channel = 1
 
     time_at_beginning_of_experiment = datetime.now()
+    # used to transport data from the reader process to the visualizer
     ls_data_queue = Queue()
+    # used to terminate the reader if visualizer is closed
+    shared_stop_indicator = Value('b', False)
     visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment,
                                                save_raw_data=_save_raw_data, filename=_filename,
-                                               measurements_per_scan=_measurements_per_scan)
+                                               measurements_per_scan=_measurements_per_scan,
+                                               thread_stop_indicator=shared_stop_indicator)
     read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel)
     visualizer_process.join()
