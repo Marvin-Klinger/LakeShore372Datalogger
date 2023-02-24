@@ -1,8 +1,7 @@
 from multiprocessing import Process, Queue, Value
-
 import numpy as np
-
 from LS_Datalogger2_v2 import acquire_samples
+from emulator import acquire_samples_debug
 from lakeshore import Model372
 from lakeshore import Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, \
     Model372InputSensorUnits, Model372MeasurementInputResistance, Model372InputSetupSettings
@@ -10,20 +9,19 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk4
+from TemperatureCalibration import cal_mk4
 
 
 def on_close(thread_stop_indicator):
-    print('Closed Figure!')
     thread_stop_indicator.value = True
 
 
-def visualize_single_channel(queue, time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
+def visualize_single_channel(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
                              filename='resistance_single_channel', save_raw_data=True,
                              thread_stop_indicator=Value('b', False)):
     lgr = logging.getLogger('resistance1')
     lgr.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('./' + str(time_at_beginning_of_experiment) + 'ADR_Data_' + filename + '.csv')
+    fh = logging.FileHandler('./' + str(_time_at_beginning_of_experiment) + 'ADR_Data_' + filename + '.csv')
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -91,7 +89,7 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
         # new data has arrived, start working with it
         sample_data = queue.get()  # Read from the queue
 
-        # get mean values and standarddev of all quantities
+        # get mean values and standard dev of all quantities
         resistance_thermometer = sample_data["R"].mean()
         quadrature_thermometer = sample_data["iR"].mean()
         power_thermometer = sample_data["P"].mean()
@@ -133,55 +131,83 @@ def visualize_single_channel(queue, time_at_beginning_of_experiment, measurement
 
         if save_raw_data:
             # save the raw data from the instrument - this gets large fast!
-            sample_data.to_csv('./' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
+            sample_data.to_csv('./' + str(_time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
                                mode='a', index=False, header=False)
 
-        axs[0].clear()
-        axs[1].clear()
+        if queue.qsize() > 5:
+            """
+            Last resort. More than 5 measurements recent measurements were not processed due to long redraw time.
+            Now the older half of the plot will be dropped. This does not affect any saved data.
+            """
+            time_plot = time_plot[len(time_plot)//2:]
+            time_error_plot = time_error_plot[len(time_error_plot)//2:]
+            resistance_plot = resistance_plot[len(resistance_plot)//2:]
+            resistance_error_plot = resistance_error_plot[len(resistance_error_plot)//2:]
+            temperature_plot = temperature_plot[len(temperature_plot)//2:]
+            temperature_error_plot = temperature_error_plot[len(temperature_error_plot)//2:]
 
-        # axs[0].set_data(time_plot, resistance_plot)
-        # axs[1].set_data(time_plot, temperature_plot)
+        """
+        Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
+        getting to long. 
+        """
+        if queue.qsize() < 2:
+            axs[0].clear()
+            axs[1].clear()
 
-        axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
-            round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(round(1000 * temperature, 1)) + ' ± ' + str(
-            round(1000 * temperature_error, 1)) + ' mK')
+            # axs[0].set_data(time_plot, resistance_plot)
+            # axs[1].set_data(time_plot, temperature_plot)
 
-        axs[0].set_xlabel('Elapsed time [s]')
-        axs[0].set_ylabel('Resistance [Ohm]')
-        axs[1].set_ylabel('Calibrated temperature [K]')
-        axs[1].set_yscale('log')
+            axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
+                round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(
+                round(1000 * temperature, 1)) + ' ± ' + str(
+                round(1000 * temperature_error, 1)) + ' mK')
 
-        axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-        axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+            axs[0].set_xlabel('Elapsed time [s]')
+            axs[0].set_ylabel('Resistance [Ohm]')
+            axs[1].set_ylabel('Calibrated temperature [K]')
+            axs[1].set_yscale('log')
 
-        # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-        # draw the new information for the user
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+            # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+            # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+
+            axs[0].scatter(time_plot, resistance_plot)
+            axs[1].scatter(time_plot, temperature_plot)
+
+            # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
+            # draw the new information for the user
+            fig.canvas.draw()
+            fig.canvas.flush_events()
 
 
 def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, configure_input=False,
-                        ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False)):
+                        ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False),
+                        debug=False):
     """"""
-    instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+    if not debug:
+        instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+        if configure_input:
+            settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                              Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                              Model372AutoRangeMode.CURRENT, False,
+                                                              Model372InputSensorUnits.OHMS,
+                                                              Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+            instrument_372.configure_input(channel, settings_thermometer)
 
-    if configure_input:
-        settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                          Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                          Model372AutoRangeMode.CURRENT, False,
-                                                          Model372InputSensorUnits.OHMS,
-                                                          Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
-
-        instrument_372.configure_input(channel, settings_thermometer)
-
-    instrument_372.set_scanner_status(input_channel=channel, status=False)
-    time.sleep(4)
-
-    while True:
-        sample_data = acquire_samples(instrument_372, measurements_per_scan, channel, _time_at_beginning_of_experiment)
-        queue.put(sample_data)
-        if thread_stop_indicator:
-            break
+        instrument_372.set_scanner_status(input_channel=channel, status=False)
+        time.sleep(4)
+        while True:
+            sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
+                                          _time_at_beginning_of_experiment)
+            queue.put(sample_data)
+            if thread_stop_indicator.value:
+                break
+    else:
+        while True:
+            sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
+            print(queue.qsize())
+            queue.put(sample_data)
+            if thread_stop_indicator.value:
+                break
 
 
 def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
@@ -199,7 +225,7 @@ if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 200
     _filename = "ADR_Na05K05_2_fine_MK03_dyna"
-    _save_raw_data = True
+    _save_raw_data = False
     _lakeshore_channel = 1
 
     time_at_beginning_of_experiment = datetime.now()
@@ -211,5 +237,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel)
+    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=False,
+                        thread_stop_indicator=shared_stop_indicator)
     visualizer_process.join()
