@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value
 
 import numpy as np
 
@@ -13,9 +13,14 @@ import matplotlib.pyplot as plt
 from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4
 
 
+def on_close(thread_stop_indicator):
+    thread_stop_indicator.value = True
+
+
 def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment, measurements_per_scan=70,
                                delimiter=',',
-                               filename='resistance_single_channel', save_raw_data=True):
+                               filename='resistance_single_channel', save_raw_data=True,
+                               thread_stop_indicator=Value('b', False)):
     lgr1 = logging.getLogger('dual_thermometers')
     lgr1.setLevel(logging.DEBUG)
     fh = logging.FileHandler('./' + str(time_at_beginning_of_experiment) + 'ADR_Data_Therm1_' + filename + '.csv')
@@ -108,6 +113,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
 
     plt.ion()
     fig, axs = plt.subplots(2, 1)
+    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
 
     while True:
         if queue_a.qsize() == 0 or queue_b.qsize() == 0:
@@ -205,35 +211,34 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
                 './' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data_B_' + filename + '.csv', mode='a',
                 index=False, header=False)
 
-        axs[0].clear()
-
-        # draw the R(t) plot
-        axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
-        axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
-        axs[0].set_title('R_1 = ' + str(resistance_thermometer) + '±' + str(
-            round(resistance_thermometer_err)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature)) + ' ± ' + str(
-            round(1000 * temperature_error)) + ' mK' + '    R_2 = ' + str(round(resistance_thermometer2)) + '±' + str(
-            round(resistance_thermometer_err2)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2)) + ' ± ' + str(
-            round(1000 * temperature_error2)) + ' mK')
-
-        axs[0].set_ylabel('Resistance [Ohm]')
-        # axs[0].set_xlabel('Elapsed time [s]')
-
-        # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-        axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, label='Chan1', fmt='o')
-        axs[1].errorbar(time_plot2, temperature_plot2, yerr=temperature_error_plot2, label='Chan2', fmt='o')
-        axs[1].set_ylabel('Calibrated temperature [K]')
-        axs[1].set_yscale('log')
-        # axs[1].set_ylim(0.02, 3)
-        axs[1].set_xlabel('Time [s]')
-
-        # draw the new information for the user
-        fig.canvas.draw()
-        fig.canvas.flush_events()
+        if queue_a.qsize() < 2 and queue_b.qsize() < 2:
+            axs[0].clear()
+            # draw the R(t) plot
+            axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
+            axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
+            axs[0].set_title('R_1 = ' + str(resistance_thermometer) + '±' + str(
+                round(resistance_thermometer_err)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature)) + ' ± ' + str(
+                round(1000 * temperature_error)) + ' mK' + '    R_2 = ' + str(
+                round(resistance_thermometer2)) + '±' + str(
+                round(resistance_thermometer_err2)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2)) + ' ± ' + str(
+                round(1000 * temperature_error2)) + ' mK')
+            axs[0].set_ylabel('Resistance [Ohm]')
+            # axs[0].set_xlabel('Elapsed time [s]')
+            # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
+            axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, label='Chan1', fmt='o')
+            axs[1].errorbar(time_plot2, temperature_plot2, yerr=temperature_error_plot2, label='Chan2', fmt='o')
+            axs[1].set_ylabel('Calibrated temperature [K]')
+            axs[1].set_yscale('log')
+            # axs[1].set_ylim(0.02, 3)
+            axs[1].set_xlabel('Time [s]')
+            # draw the new information for the user
+            fig.canvas.draw()
+            fig.canvas.flush_events()
 
 
 def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channel_a=1, channel_b=2,
-                      configure_input=False, ip_address="192.168.0.12", measurements_per_scan=70):
+                      configure_input=False, ip_address="192.168.0.12", measurements_per_scan=70,
+                      thread_stop_indicator=Value('b', False)):
     """"""
     instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
 
@@ -251,6 +256,8 @@ def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channe
     time.sleep(4)
 
     while True:
+        if thread_stop_indicator.value:
+            break
         sample_data_a = acquire_samples(instrument_372, measurements_per_scan, channel_a,
                                         _time_at_beginning_of_experiment)
         queue_a.put(sample_data_a)
@@ -264,15 +271,15 @@ def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channe
 
 
 def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, measurements_per_scan=70, delimeter=',',
-                          filename='resistance_dual_channel', save_raw_data=True):
+                          filename='resistance_dual_channel', save_raw_data=True,
+                          thread_stop_indicator=Value('b', False)):
     """Start the reader processes and return all in a list to the caller"""
-    ### reader_p() reads from qq as a separate process...
-    reader_p = Process(target=visualize_two_thermometers, args=(queue_a, queue_b, time_at_beginning_of_experiment,
-                                                                measurements_per_scan, delimeter, filename,
-                                                                save_raw_data))
-    reader_p.daemon = True
-    reader_p.start()  # Launch reader_p() as another proc
-    return reader_p
+    visualizer = Process(target=visualize_two_thermometers, args=(queue_a, queue_b, time_at_beginning_of_experiment,
+                                                                  measurements_per_scan, delimeter, filename,
+                                                                  save_raw_data, thread_stop_indicator))
+    visualizer.daemon = True
+    visualizer.start()
+    return visualizer
 
 
 if __name__ == "__main__":
@@ -280,12 +287,15 @@ if __name__ == "__main__":
     _filename = "ADR_MK03_MK02"
     _save_raw_data = True
 
+    shared_stop_indicator = Value('b', False)
     time_at_beginning_of_experiment = datetime.now()
     ls_data_queue_a = Queue()  # writer() writes to ls_data_queue from _this_ process
     ls_data_queue_b = Queue()  # writer() writes to ls_data_queue from _this_ process
     visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_a, time_at_beginning_of_experiment,
                                                filename=_filename, save_raw_data=_save_raw_data,
-                                               measurements_per_scan=_measurements_per_scan)
-    read_dual_channel(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment, channel_a=1, channel_b=2)
+                                               measurements_per_scan=_measurements_per_scan,
+                                               thread_stop_indicator=shared_stop_indicator)
+    read_dual_channel(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment, channel_a=1, channel_b=2,
+                      thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
     print("main end")
