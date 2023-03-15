@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4
+from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4, cal_mk7
 
 
 def on_close(thread_stop_indicator):
@@ -59,7 +59,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         "Watt"
     )
 
-    lgr2 = logging.getLogger('dual_thermometers')
+    lgr2 = logging.getLogger('dual_thermometers_2')
     lgr2.setLevel(logging.DEBUG)
     fh = logging.FileHandler('./' + str(time_at_beginning_of_experiment) + 'ADR_Data_Therm2_' + filename + '.csv')
     fh.setLevel(logging.DEBUG)
@@ -136,12 +136,12 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk4(resistance_thermometer)
+        temperature = cal_mk7(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
+        temperature_upper = cal_mk7(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk7(resistance_thermometer + resistance_thermometer_err)
         temperature_error = np.absolute(temperature_upper - temperature_lower) / 2
         temperature_error_plot.append(temperature_error)
 
@@ -193,7 +193,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         resistance_plot2.append(resistance_thermometer2)
         resistance_error_plot2.append(resistance_thermometer_err2)
 
-        lgr1.info(
+        lgr2.info(
             str(datetime.now()) + delimiter +
             str(time_thermometer2) + delimiter +
             str(time_thermometer_err2) + delimiter +
@@ -213,6 +213,7 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
 
         if queue_a.qsize() < 2 and queue_b.qsize() < 2:
             axs[0].clear()
+            axs[1].clear()
             # draw the R(t) plot
             axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
             axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
@@ -283,15 +284,15 @@ def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, mea
 
 
 if __name__ == "__main__":
-    _measurements_per_scan = 200
-    _filename = "ADR_MK03_MK02"
+    _measurements_per_scan = 100
+    _filename = "HeaterTestControlMK4MK5"
     _save_raw_data = True
 
     shared_stop_indicator = Value('b', False)
     time_at_beginning_of_experiment = datetime.now()
     ls_data_queue_a = Queue()  # writer() writes to ls_data_queue from _this_ process
     ls_data_queue_b = Queue()  # writer() writes to ls_data_queue from _this_ process
-    visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_a, time_at_beginning_of_experiment,
+    visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment,
                                                filename=_filename, save_raw_data=_save_raw_data,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
