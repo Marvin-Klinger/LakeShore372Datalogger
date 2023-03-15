@@ -237,6 +237,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=False,
+    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=True,
                         thread_stop_indicator=shared_stop_indicator)
     visualizer_process.join()

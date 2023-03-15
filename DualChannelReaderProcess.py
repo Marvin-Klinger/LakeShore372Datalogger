@@ -217,11 +217,11 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
             axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
             axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
             axs[0].set_title('R_1 = ' + str(resistance_thermometer) + '±' + str(
-                round(resistance_thermometer_err)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature)) + ' ± ' + str(
-                round(1000 * temperature_error)) + ' mK' + '    R_2 = ' + str(
-                round(resistance_thermometer2)) + '±' + str(
-                round(resistance_thermometer_err2)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2)) + ' ± ' + str(
-                round(1000 * temperature_error2)) + ' mK')
+                round(resistance_thermometer_err, 1)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature, 1)) + ' ± ' + str(
+                round(1000 * temperature_error, 1)) + ' mK' + '    R_2 = ' + str(
+                round(resistance_thermometer2, 1)) + '±' + str(
+                round(resistance_thermometer_err2, 1)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2, 1)) + ' ± ' + str(
+                round(1000 * temperature_error2, 1)) + ' mK')
             axs[0].set_ylabel('Resistance [Ohm]')
             # axs[0].set_xlabel('Elapsed time [s]')
             # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
