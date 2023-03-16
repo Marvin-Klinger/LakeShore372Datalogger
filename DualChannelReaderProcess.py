@@ -20,7 +20,20 @@ def on_close(thread_stop_indicator):
 def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment, measurements_per_scan=70,
                                delimiter=',',
                                filename='resistance_single_channel', save_raw_data=True,
-                               thread_stop_indicator=Value('b', False)):
+                               thread_stop_indicator=Value('b', False),
+                               create_delta_peak=Value('i', 0)):
+    """
+    heater control section:
+    heat_pulse_arming temp must be reached before heat pulse can be activated
+    heat_pulse_target_temp starts the heat pulse
+    heat_pulse_duration sets the duration of the heating (in measurements, NOT seconds)
+    """
+    heat_pulse_triggered = False
+    heat_pulse_armed = False
+    heat_pulse_target_temp = 0.1
+    heat_pulse_arming_temp = 0.07
+    heat_pulse_duration = 2
+
     lgr1 = logging.getLogger('dual_thermometers')
     lgr1.setLevel(logging.DEBUG)
     fh = logging.FileHandler('./' + str(time_at_beginning_of_experiment) + 'ADR_Data_Therm1_' + filename + '.csv')
@@ -211,16 +224,29 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
                 './' + str(time_at_beginning_of_experiment) + 'RAW_resistance_data_B_' + filename + '.csv', mode='a',
                 index=False, header=False)
 
+        # heater control
+        if (temperature < heat_pulse_arming_temp or temperature2 < heat_pulse_arming_temp) and not heat_pulse_triggered:
+            heat_pulse_armed = True
+            print("heater has been armed")
+
+        if (temperature > heat_pulse_target_temp and temperature2 > heat_pulse_target_temp) and heat_pulse_armed and not heat_pulse_triggered:
+            create_delta_peak.value = heat_pulse_duration
+            heat_pulse_triggered = True
+            heat_pulse_armed = False
+            print("heater has ben triggered")
+
         if queue_a.qsize() < 2 and queue_b.qsize() < 2:
             axs[0].clear()
             # draw the R(t) plot
             axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, label='Chan1', fmt='o')
             axs[0].errorbar(time_plot2, resistance_plot2, yerr=resistance_error_plot2, label='Chan2', fmt='o')
             axs[0].set_title('R_1 = ' + str(resistance_thermometer) + '±' + str(
-                round(resistance_thermometer_err, 1)) + ' Ω  T_cal_1 = ' + str(round(1000 * temperature, 1)) + ' ± ' + str(
+                round(resistance_thermometer_err, 1)) + ' Ω  T_cal_1 = ' + str(
+                round(1000 * temperature, 1)) + ' ± ' + str(
                 round(1000 * temperature_error, 1)) + ' mK' + '    R_2 = ' + str(
                 round(resistance_thermometer2, 1)) + '±' + str(
-                round(resistance_thermometer_err2, 1)) + ' Ω  T_cal_2 = ' + str(round(1000 * temperature2, 1)) + ' ± ' + str(
+                round(resistance_thermometer_err2, 1)) + ' Ω  T_cal_2 = ' + str(
+                round(1000 * temperature2, 1)) + ' ± ' + str(
                 round(1000 * temperature_error2, 1)) + ' mK')
             axs[0].set_ylabel('Resistance [Ohm]')
             # axs[0].set_xlabel('Elapsed time [s]')
@@ -238,17 +264,23 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
 
 def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channel_a=1, channel_b=2,
                       configure_input=False, ip_address="192.168.0.12", measurements_per_scan=70,
-                      thread_stop_indicator=Value('b', False)):
+                      thread_stop_indicator=Value('b', False), create_delta_peak=Value('i', 0), heater_channel=None):
     """"""
     instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
 
-    if configure_input:
-        settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                          Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                          Model372AutoRangeMode.CURRENT, False,
-                                                          Model372InputSensorUnits.OHMS,
-                                                          Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+    settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                      Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                      Model372AutoRangeMode.CURRENT, False,
+                                                      Model372InputSensorUnits.OHMS,
+                                                      Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
 
+    settings_heater_330ohm = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                        Model372MeasurementInputCurrentRange.RANGE_316_MICRO_AMPS,
+                                                        Model372AutoRangeMode.CURRENT, False,
+                                                        Model372InputSensorUnits.OHMS,
+                                                        Model372MeasurementInputResistance.RANGE_2_KIL_OHMS)
+
+    if configure_input:
         instrument_372.configure_input(channel_a, settings_thermometer)
         instrument_372.configure_input(channel_b, settings_thermometer)
 
@@ -258,11 +290,39 @@ def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channe
     while True:
         if thread_stop_indicator.value:
             break
-        sample_data_a = acquire_samples(instrument_372, measurements_per_scan, channel_a,
-                                        _time_at_beginning_of_experiment)
-        queue_a.put(sample_data_a)
+
+        if create_delta_peak.value > 0 and heater_channel == channel_a:
+            # the next measurement will be executed with high power
+            create_delta_peak.value = create_delta_peak.value - 1
+            backup_channel_configuration = instrument_372.get_input_channel_parameters(heater_channel)
+            instrument_372.configure_input(heater_channel, settings_heater_330ohm)
+            sample_data_a = acquire_samples(instrument_372, measurements_per_scan, channel_a,
+                                            _time_at_beginning_of_experiment)
+            queue_a.put(sample_data_a)
+            instrument_372.configure_input(heater_channel, backup_channel_configuration)
+        else:
+            # normal low power operation
+            sample_data_a = acquire_samples(instrument_372, measurements_per_scan, channel_a,
+                                            _time_at_beginning_of_experiment)
+            queue_a.put(sample_data_a)
+
         instrument_372.set_scanner_status(input_channel=channel_b, status=False)
         time.sleep(4)
+
+        if create_delta_peak.value > 0 and heater_channel == channel_b:
+            # the next measurement will be executed with high power
+            create_delta_peak.value = create_delta_peak.value - 1
+            backup_channel_configuration = instrument_372.get_input_channel_parameters(heater_channel)
+            instrument_372.configure_input(heater_channel, settings_heater_330ohm)
+            sample_data_b = acquire_samples(instrument_372, measurements_per_scan, channel_b,
+                                            _time_at_beginning_of_experiment)
+            queue_b.put(sample_data_b)
+            instrument_372.configure_input(heater_channel, backup_channel_configuration)
+        else:
+            # normal low power operation
+            sample_data_b = acquire_samples(instrument_372, measurements_per_scan, channel_b,
+                                            _time_at_beginning_of_experiment)
+            queue_b.put(sample_data_b)
         sample_data_b = acquire_samples(instrument_372, measurements_per_scan, channel_b,
                                         _time_at_beginning_of_experiment)
         queue_b.put(sample_data_b)
@@ -272,11 +332,12 @@ def read_dual_channel(queue_a, queue_b, _time_at_beginning_of_experiment, channe
 
 def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, measurements_per_scan=70, delimeter=',',
                           filename='resistance_dual_channel', save_raw_data=True,
-                          thread_stop_indicator=Value('b', False)):
+                          thread_stop_indicator=Value('b', False), create_delta_peak=Value('i', 0)):
     """Start the reader processes and return all in a list to the caller"""
     visualizer = Process(target=visualize_two_thermometers, args=(queue_a, queue_b, time_at_beginning_of_experiment,
                                                                   measurements_per_scan, delimeter, filename,
-                                                                  save_raw_data, thread_stop_indicator))
+                                                                  save_raw_data, thread_stop_indicator,
+                                                                  create_delta_peak))
     visualizer.daemon = True
     visualizer.start()
     return visualizer
@@ -288,14 +349,17 @@ if __name__ == "__main__":
     _save_raw_data = True
 
     shared_stop_indicator = Value('b', False)
+    heater_control = Value('i', 0)
     time_at_beginning_of_experiment = datetime.now()
     ls_data_queue_a = Queue()  # writer() writes to ls_data_queue from _this_ process
     ls_data_queue_b = Queue()  # writer() writes to ls_data_queue from _this_ process
     visualizer_process = start_data_visualizer(ls_data_queue_a, ls_data_queue_a, time_at_beginning_of_experiment,
                                                filename=_filename, save_raw_data=_save_raw_data,
                                                measurements_per_scan=_measurements_per_scan,
-                                               thread_stop_indicator=shared_stop_indicator)
+                                               thread_stop_indicator=shared_stop_indicator,
+                                               create_delta_peak=heater_control)
     read_dual_channel(ls_data_queue_a, ls_data_queue_b, time_at_beginning_of_experiment, channel_a=1, channel_b=2,
-                      thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
+                      thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan,
+                      create_delta_peak=heater_control, heater_channel=1)
     visualizer_process.join()
     print("main end")
