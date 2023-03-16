@@ -223,10 +223,10 @@ def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_
 
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
-    _measurements_per_scan = 200
-    _filename = "ADR_Na05K05_2_fine_MK03_dyna"
-    _save_raw_data = False
-    _lakeshore_channel = 1
+    _measurements_per_scan = 70
+    _filename = "ADR_Ba3GdB3O9_mk4"
+    _save_raw_data = True
+    _lakeshore_channel = 2
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer

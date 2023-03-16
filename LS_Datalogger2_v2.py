@@ -7,7 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_mk1
+from TemperatureCalibration import cal_mk4
 
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):
@@ -51,7 +51,7 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
 
 def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
                                     configure_inputs=False, delimiter=',', ip_address="192.168.0.12",
-                                    measurements_per_scan=100):
+                                    measurements_per_scan=200):
     time_at_beginning_of_experiment = datetime.now()
 
     # configure logging for regular data output (preprocessed, small files)
@@ -169,12 +169,12 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         time_thermometer_err = two_last_thermometer_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk1(resistance_thermometer)
+        temperature = cal_mk4(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk1(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk1(resistance_thermometer + resistance_thermometer_err)
+        temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
         temperature_error = temperature_lower/2 + temperature_upper/2 - temperature
         temperature_error_plot.append(temperature_error)
 
@@ -248,7 +248,7 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
         axs[1].errorbar(temperature_plot, resistance_plot, yerr=resistance_error_plot, label='Sample', fmt='o')
         axs[1].set_ylabel('Sample Resistance [Ohms]')
         axs[1].set_xlabel('Temperature [K]')
-        axs[1].set_title('R_sample[Ohm]= ' + str(int(resistance_sample)) + ' ± ' + str(int(resistance_sample_err)),
+        axs[1].set_title('R_sample[Ohm]= ' + str(resistance_sample) + ' ± ' + str(resistance_sample_err),
                          fontsize=10)
 
         # draw the new information for the user
@@ -257,4 +257,4 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
 
 
 if __name__ == "__main__":
-    model372_thermometer_and_sample(1, 2, "He3Cal_MK3_MK4_2ndRun", True)
+    model372_thermometer_and_sample(2, 1, "GdBO3_Mk4_Mk2_Dyna", True)
