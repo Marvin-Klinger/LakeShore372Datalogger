@@ -58,6 +58,13 @@ def cal_mk7(x):
         return 0.0725238847028473 * (np.log(((x + 428.519497335669) / 702.665844315736))) ** (-1 / 0.345)
 
 
+def cal_mk8(x):
+    if x > 9000:
+        return 16.6186885986779 * (np.log(((x - 2614.8579149542) / 1029.46467803875))) ** (-1 / 0.345)
+    else:
+        return 16.592768580112 * (np.log(((x - 2602.58081008141) / 1031.84217910761))) ** (-1 / 0.345)
+
+
 def show_plot(save_calibrated_file=False, filename=""):
     if filename == "":
         filename = askopenfilename(initialdir=r'/home/marvin/Nextcloud/Uni/Masterarbeit_Marvin/35_Messdaten_ADR')
