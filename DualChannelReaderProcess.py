@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4, cal_mk7
+from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4, cal_mk8
 
 
 def on_close(thread_stop_indicator):
@@ -136,12 +136,12 @@ def visualize_two_thermometers(queue_a, queue_b, time_at_beginning_of_experiment
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk7(resistance_thermometer)
+        temperature = cal_mk8(resistance_thermometer)
         temperature_plot.append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk7(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk7(resistance_thermometer + resistance_thermometer_err)
+        temperature_upper = cal_mk8(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = cal_mk8(resistance_thermometer + resistance_thermometer_err)
         temperature_error = np.absolute(temperature_upper - temperature_lower) / 2
         temperature_error_plot.append(temperature_error)
 
