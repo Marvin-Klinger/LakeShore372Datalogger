@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_ser6, cal_ser8, cal_mk1, cal_mk3, cal_mk4, cal_mk8
+from TemperatureCalibration import cal_mk4, cal_mk8
 
 
 def on_close(thread_stop_indicator):
