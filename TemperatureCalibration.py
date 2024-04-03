@@ -5,6 +5,10 @@ from tkinter.filedialog import askopenfilename, askdirectory
 import os
 
 
+def cal_mx_01(x):
+    return 0.1254 * (np.log(-(-5892.98581-x)/7844.98581)) ** (-1/0.56628)
+
+
 def cal_ser8(x):
     x = 11.2 - np.log(x - 1400)
     return np.exp(

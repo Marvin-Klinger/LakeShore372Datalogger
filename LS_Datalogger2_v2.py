@@ -7,7 +7,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_mk4
+from TemperatureCalibration import cal_mk8 as cal_mk4
 
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):
@@ -257,4 +257,4 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
 
 
 if __name__ == "__main__":
-    model372_thermometer_and_sample(2, 1, "GdBO3_Mk4_Mk2_Dyna", True)
+    model372_thermometer_and_sample(2, 1, "TwostageRun9_test1_SER8MK8_warm", True)

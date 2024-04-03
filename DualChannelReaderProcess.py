@@ -10,7 +10,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_mk4, cal_mk8
+from TemperatureCalibration import cal_mk4, cal_mk4 as cal_mk8
 
 
 def on_close(thread_stop_indicator):
@@ -285,7 +285,7 @@ def start_data_visualizer(queue_a, queue_b, time_at_beginning_of_experiment, mea
 
 if __name__ == "__main__":
     _measurements_per_scan = 100
-    _filename = "HeaterTestControlMK4MK5"
+    _filename = "Calibration_mx_01_camcool_1_uncal_r2"
     _save_raw_data = True
 
     shared_stop_indicator = Value('b', False)

@@ -9,7 +9,7 @@ import time
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_mk4
+from TemperatureCalibration import cal_mx_01 as cal_mk4
 
 
 def on_close(thread_stop_indicator):
@@ -21,7 +21,7 @@ def visualize_single_channel(queue, _time_at_beginning_of_experiment, measuremen
                              thread_stop_indicator=Value('b', False)):
     lgr = logging.getLogger('resistance1')
     lgr.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('./' + str(_time_at_beginning_of_experiment) + 'ADR_Data_' + filename + '.csv')
+    fh = logging.FileHandler('./' + str(_time_at_beginning_of_experiment.strftime("%Y-%m-%d-%H-%M-%S")) + 'ADR_Data_' + filename + '.csv')
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -131,7 +131,7 @@ def visualize_single_channel(queue, _time_at_beginning_of_experiment, measuremen
 
         if save_raw_data:
             # save the raw data from the instrument - this gets large fast!
-            sample_data.to_csv('./' + str(_time_at_beginning_of_experiment) + 'RAW_resistance_data' + filename + '.csv',
+            sample_data.to_csv('./' + str(_time_at_beginning_of_experiment.strftime("%Y-%m-%d-%H-%M-%S")) + 'RAW_resistance_data' + filename + '.csv',
                                mode='a', index=False, header=False)
 
         if queue.qsize() > 5:
@@ -224,9 +224,9 @@ def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 70
-    _filename = "ADR_Ba3GdB3O9_mk4"
+    _filename = "Ba3GdB9O18_rerun2c_mx01"
     _save_raw_data = True
-    _lakeshore_channel = 2
+    _lakeshore_channel = 1
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
@@ -237,6 +237,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=True,
-                        thread_stop_indicator=shared_stop_indicator)
+    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=False,
+                        thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
