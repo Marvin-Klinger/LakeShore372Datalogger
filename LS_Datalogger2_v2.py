@@ -1,7 +1,5 @@
 import pandas
 from lakeshore import Model372
-from lakeshore import Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, \
-    Model372InputSensorUnits, Model372MeasurementInputResistance, Model372InputSetupSettings
 import logging
 from datetime import datetime
 import matplotlib.pyplot as plt

@@ -4,8 +4,6 @@ import numpy as np
 
 from LS_Datalogger2_v2 import acquire_samples
 from lakeshore import Model372
-from lakeshore import Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, Model372AutoRangeMode, \
-    Model372InputSensorUnits, Model372MeasurementInputResistance, Model372InputSetupSettings
 import time
 import logging
 from datetime import datetime
