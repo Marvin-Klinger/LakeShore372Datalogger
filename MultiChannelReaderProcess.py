@@ -13,11 +13,14 @@ from TemperatureCalibration import cal_mx_01 as cal_mk4
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
 
-def setup_logger(channel_number, name, filename, filepath, _time_at_beginning_of_experiment):
+
+def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=',', filename=''):
+    name = "logger" + channel_number
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler(
-        './' + str(_time_at_beginning_of_experiment.strftime("%Y-%m-%d-%H-%M-%S")) + 'ADR_Data_' + filename + '.csv')
+        './' + str(filepath + _time.strftime("%Y-%m-%d-%H-%M-%S")) + 'ADR_Data_Channel' + channel_number + filename +
+        '.csv')
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -40,7 +43,7 @@ def setup_logger(channel_number, name, filename, filepath, _time_at_beginning_of
         "Power_thermometer_error"
     )
     lgr.info(
-        "[YYYY-MM-DD hh:mm:ss,###]" + delimiter +
+        "[YYYY-MM-DD hh:mm:ss.###]" + delimiter +
         "second" + delimiter +
         "second" + delimiter +
         "Kelvin" + delimiter +
