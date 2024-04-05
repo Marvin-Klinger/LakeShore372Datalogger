@@ -55,6 +55,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
         "Watt" + delimiter +
         "Watt"
     )
+    return lgr
 
 def visualize_three_channel(queue1, queue2, queue3, _time_at_beginning_of_experiment, measurements_per_scan=70,
                             delimiter=',', filename='resistance_single_channel', save_raw_data=True,
