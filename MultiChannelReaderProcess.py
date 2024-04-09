@@ -264,7 +264,7 @@ if __name__ == "__main__":
     _measurements_per_scan = 70
     _filename = "Ba3GdB9O18_rerun2c_mx01"
     _save_raw_data = True
-    _lakeshore_channel = 1
+    _lakeshore_channels = [1]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
@@ -275,6 +275,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=False,
+    read_multi_channel(channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
