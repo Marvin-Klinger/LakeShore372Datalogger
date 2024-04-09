@@ -3,6 +3,8 @@ import numpy as np
 from LS_Datalogger2_v2 import acquire_samples
 from emulator import acquire_samples_debug
 from lakeshore import Model372
+from lakeshore import Model372InputSetupSettings, Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, \
+    Model372AutoRangeMode, Model372InputSensorUnits, Model372MeasurementInputResistance
 import time
 import logging
 from datetime import datetime
@@ -57,54 +59,20 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     )
     return lgr
 
-def
-def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filename='resistance_single_channel', save_raw_data=True, thread_stop_indicator=Value('b', False)):
-    lgr = logging.getLogger('resistance1')
-    lgr.setLevel(logging.DEBUG)
-    fh = logging.FileHandler('./' + str(_time_at_beginning_of_experiment.strftime("%Y-%m-%d-%H-%M-%S")) + 'ADR_Data_' + filename + '.csv')
-    fh.setLevel(logging.DEBUG)
-    frmt = logging.Formatter('%(message)s')
-    fh.setFormatter(frmt)
-    lgr.addHandler(fh)
-    lgr.info("Measurement of thermometer resistivity with Lake Shore 372 AC Bridge")
-    lgr.info("Data is aggregated with " + str(measurements_per_scan) + " samples for every line of this log.")
-    lgr.info("This file does not contain raw data!")
-    lgr.info("Data field names and types:")
-    lgr.info(
-        "Timestamp" + delimiter +
-        "Elapsed_time" + delimiter +
-        "Elapsed_time_error" + delimiter +
-        "Thermometer_temperature" + delimiter +
-        "Thermometer_temperature_error" + delimiter +
-        "Resistance_thermometer" + delimiter +
-        "Resistance_thermometer_error" + delimiter +
-        "Quadrature_thermometer" + delimiter +
-        "Quadrature_thermometer_error" + delimiter +
-        "Power_thermometer" + delimiter +
-        "Power_thermometer_error"
-    )
-    lgr.info(
-        "[YYYY-MM-DD hh:mm:ss,###]" + delimiter +
-        "second" + delimiter +
-        "second" + delimiter +
-        "Kelvin" + delimiter +
-        "Kelvin" + delimiter +
-        "Ohm" + delimiter +
-        "Ohm" + delimiter +
-        "iOhm" + delimiter +
-        "iOhm" + delimiter +
-        "Watt" + delimiter +
-        "Watt"
-    )
 
+def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filename='resistance_single_channel', thread_stop_indicator=Value('b', False)):
+    loggers = []
+    for channel in channels:
+        lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filename)
+        loggers.append(lgr)
 
-
-    time_plot = []
-    time_error_plot = []
-    temperature_plot = []
-    temperature_error_plot = []
-    resistance_plot = []
-    resistance_error_plot = []
+#TODO: this creates many potentially empty lists that will never be filled
+    time_plot = [[] for _ in range(16)]
+    time_error_plot = [[] for _ in range(16)]
+    temperature_plot = [[] for _ in range(16)]
+    temperature_error_plot = [[] for _ in range(16)]
+    resistance_plot = [[] for _ in range(16)]
+    resistance_error_plot = [[] for _ in range(16)]
 
     plt.ion()
     fig, axs = plt.subplots(2, 1)
@@ -117,8 +85,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[1].set_ylim(0.01, 10)
     axs[1].set_xlabel('Time [s]')
 
-    axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-    axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+    for i in channels:
+        i -= 1
+        axs[0].errorbar(time_plot[i], resistance_plot[i], yerr=resistance_error_plot[i], fmt='o')
+        axs[1].errorbar(time_plot[i], temperature_plot[i], yerr=temperature_error_plot[i], fmt='o')
 
     while True:
         # redraw the plot to keep the UI going if there is no new data
@@ -129,7 +99,9 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             continue
 
         # new data has arrived, start working with it
-        sample_data = queue.get()  # Read from the queue
+        data_package = queue.get()  # Read from the queue
+        channel_index = data_package[0]
+        sample_data = data_package[1]
 
         # get mean values and standard dev of all quantities
         resistance_thermometer = sample_data["R"].mean()
@@ -143,7 +115,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
         # calculate the temperature during the resistivity measurement
         temperature = cal_mk4(resistance_thermometer)
-        temperature_plot.append(temperature)
+        temperature_plot[channel_index].append(temperature)
 
         # calculate temperature error
         temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
@@ -151,14 +123,14 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error = (temperature_upper - temperature_lower) / 2
         temperature_error = np.absolute(temperature_error)
-        temperature_error_plot.append(temperature_error)
+        temperature_error_plot[channel_index].append(temperature_error)
 
-        time_plot.append(time_thermometer)
-        time_error_plot.append(time_thermometer_err)  # this might be too large, about 2s
-        resistance_plot.append(resistance_thermometer)
-        resistance_error_plot.append(resistance_thermometer_err)
+        time_plot[channel_index].append(time_thermometer)
+        time_error_plot[channel_index].append(time_thermometer_err)  # this might be too large, about 2s
+        resistance_plot[channel_index].append(resistance_thermometer)
+        resistance_error_plot[channel_index].append(resistance_thermometer_err)
 
-        lgr.info(
+        loggers[channel_index].info(
             str(datetime.now()) + delimiter +
             str(time_thermometer) + delimiter +
             str(time_thermometer_err) + delimiter +
@@ -176,6 +148,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             Last resort. More than 5 measurements recent measurements were not processed due to long redraw time.
             Now the older half of the plot will be dropped. This does not affect any saved data.
             """
+            #TODO: for all time series
             time_plot = time_plot[len(time_plot)//2:]
             time_error_plot = time_error_plot[len(time_error_plot)//2:]
             resistance_plot = resistance_plot[len(resistance_plot)//2:]
@@ -187,6 +160,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
         getting to long. 
         """
+        #TODO: for all time series
         if queue.qsize() < 2:
             axs[0].clear()
             axs[1].clear()
