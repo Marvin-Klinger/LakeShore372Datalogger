@@ -190,35 +190,36 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             fig.canvas.flush_events()
 
 
-def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, configure_input=False,
+def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, configure_input=False,
                         ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False),
                         debug=False):
     """"""
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
-        if configure_input:
-            settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                              Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                              Model372AutoRangeMode.CURRENT, False,
-                                                              Model372InputSensorUnits.OHMS,
-                                                              Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
-            instrument_372.configure_input(channel, settings_thermometer)
+        for channel in channels:
+            if configure_input:
+                settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                                  Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                                  Model372AutoRangeMode.CURRENT, False,
+                                                                  Model372InputSensorUnits.OHMS,
+                                                                  Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+                instrument_372.configure_input(channel, settings_thermometer)
 
-        instrument_372.set_scanner_status(input_channel=channel, status=False)
-        time.sleep(4)
-        while True:
-            sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
-                                          _time_at_beginning_of_experiment)
-            queue.put(sample_data)
-            if thread_stop_indicator.value:
-                break
-    else:
-        while True:
-            sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
-            print(queue.qsize())
-            queue.put(sample_data)
-            if thread_stop_indicator.value:
-                break
+            instrument_372.set_scanner_status(input_channel=channel, status=False)
+            time.sleep(4)
+            while True:
+                sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
+                                              _time_at_beginning_of_experiment)
+                queue.put((channel, sample_data))
+                if thread_stop_indicator.value:
+                    break
+        else:
+            while True:
+                sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
+                print(queue.qsize())
+                queue.put((channel, sample_data))
+                if thread_stop_indicator.value:
+                    break
 
 
 def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     _measurements_per_scan = 70
     _filename = "Ba3GdB9O18_rerun2c_mx01"
     _save_raw_data = True
-    _lakeshore_channel = 1
+    _lakeshore_channels = [1]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
@@ -248,6 +249,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_single_channel(ls_data_queue, time_at_beginning_of_experiment, channel=_lakeshore_channel, debug=False,
+    read_multi_channel(channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
