@@ -216,35 +216,36 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             fig.canvas.flush_events()
 
 
-def read_single_channel(queue, _time_at_beginning_of_experiment, channel=1, configure_input=False,
+def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, configure_input=False,
                         ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False),
                         debug=False):
     """"""
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
-        if configure_input:
-            settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                              Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                              Model372AutoRangeMode.CURRENT, False,
-                                                              Model372InputSensorUnits.OHMS,
-                                                              Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
-            instrument_372.configure_input(channel, settings_thermometer)
+        for channel in channels:
+            if configure_input:
+                settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                                  Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                                  Model372AutoRangeMode.CURRENT, False,
+                                                                  Model372InputSensorUnits.OHMS,
+                                                                  Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+                instrument_372.configure_input(channel, settings_thermometer)
 
-        instrument_372.set_scanner_status(input_channel=channel, status=False)
-        time.sleep(4)
-        while True:
-            sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
-                                          _time_at_beginning_of_experiment)
-            queue.put(sample_data)
-            if thread_stop_indicator.value:
-                break
-    else:
-        while True:
-            sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
-            print(queue.qsize())
-            queue.put(sample_data)
-            if thread_stop_indicator.value:
-                break
+            instrument_372.set_scanner_status(input_channel=channel, status=False)
+            time.sleep(4)
+            while True:
+                sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
+                                              _time_at_beginning_of_experiment)
+                queue.put((channel, sample_data))
+                if thread_stop_indicator.value:
+                    break
+        else:
+            while True:
+                sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
+                print(queue.qsize())
+                queue.put((channel, sample_data))
+                if thread_stop_indicator.value:
+                    break
 
 
 def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
