@@ -149,7 +149,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             Last resort. More than 5 recent measurements were not processed due to long redraw time.
             Now the older half of the plot will be dropped. This does not affect any saved data.
             """
-            #TODO: for all time series
             for channel in channels:
                 time_plot[channel] = time_plot[channel][len(time_plot)//2:]
                 time_error_plot[channel] = time_error_plot[channel][len(time_error_plot)//2:]
@@ -166,28 +165,33 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         if queue.qsize() < 2:
             axs[0].clear()
             axs[1].clear()
-
-            # axs[0].set_data(time_plot, resistance_plot)
-            # axs[1].set_data(time_plot, temperature_plot)
-
-            axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
-                round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(
-                round(1000 * temperature, 1)) + ' ± ' + str(
-                round(1000 * temperature_error, 1)) + ' mK')
-
+            
             axs[0].set_xlabel('Elapsed time [s]')
             axs[0].set_ylabel('Resistance [Ohm]')
             axs[1].set_ylabel('Calibrated temperature [K]')
             axs[1].set_yscale('log')
+           
+            axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
+                round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(
+                round(1000 * temperature, 1)) + ' ± ' + str(
+                round(1000 * temperature_error, 1)) + ' mK')
+            
+            for channel in channels:
 
-            # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-            # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+                # axs[0].set_data(time_plot, resistance_plot)
+                # axs[1].set_data(time_plot, temperature_plot)
 
-            axs[0].scatter(time_plot, resistance_plot)
-            axs[1].scatter(time_plot, temperature_plot)
 
-            # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-            # draw the new information for the user
+
+                # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+                # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+
+                axs[0].scatter(time_plot, resistance_plot)
+                axs[1].scatter(time_plot, temperature_plot)
+
+                # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
+                # draw the new information for the user
+            
             fig.canvas.draw()
             fig.canvas.flush_events()
 
