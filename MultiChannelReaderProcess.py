@@ -67,12 +67,12 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         loggers.append(lgr)
 
 #TODO: this creates many potentially empty lists that will never be filled
-    time_plot = [[] for _ in range(16)]
-    time_error_plot = [[] for _ in range(16)]
-    temperature_plot = [[] for _ in range(16)]
-    temperature_error_plot = [[] for _ in range(16)]
-    resistance_plot = [[] for _ in range(16)]
-    resistance_error_plot = [[] for _ in range(16)]
+    time_plot = [[] for _ in range(17)]
+    time_error_plot = [[] for _ in range(17)]
+    temperature_plot = [[] for _ in range(17)]
+    temperature_error_plot = [[] for _ in range(17)]
+    resistance_plot = [[] for _ in range(17)]
+    resistance_error_plot = [[] for _ in range(17)]
 
     plt.ion()
     fig, axs = plt.subplots(2, 1)
@@ -86,7 +86,8 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[1].set_xlabel('Time [s]')
 
     for i in channels:
-        i -= 1
+        #i -= 1
+        #no longer necessary, increased list length by 1
         axs[0].errorbar(time_plot[i], resistance_plot[i], yerr=resistance_error_plot[i], fmt='o')
         axs[1].errorbar(time_plot[i], temperature_plot[i], yerr=temperature_error_plot[i], fmt='o')
 
@@ -145,16 +146,17 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
         if queue.qsize() > 5:
             """
-            Last resort. More than 5 measurements recent measurements were not processed due to long redraw time.
+            Last resort. More than 5 recent measurements were not processed due to long redraw time.
             Now the older half of the plot will be dropped. This does not affect any saved data.
             """
             #TODO: for all time series
-            time_plot = time_plot[len(time_plot)//2:]
-            time_error_plot = time_error_plot[len(time_error_plot)//2:]
-            resistance_plot = resistance_plot[len(resistance_plot)//2:]
-            resistance_error_plot = resistance_error_plot[len(resistance_error_plot)//2:]
-            temperature_plot = temperature_plot[len(temperature_plot)//2:]
-            temperature_error_plot = temperature_error_plot[len(temperature_error_plot)//2:]
+            for channel in channels:
+                time_plot[channel] = time_plot[channel][len(time_plot)//2:]
+                time_error_plot[channel] = time_error_plot[channel][len(time_error_plot)//2:]
+                resistance_plot[channel] = resistance_plot[channel][len(resistance_plot)//2:]
+                resistance_error_plot[channel] = resistance_error_plot[channel][len(resistance_error_plot)//2:]
+                temperature_plot[channel] = temperature_plot[channel][len(temperature_plot)//2:]
+                temperature_error_plot[channel] = temperature_error_plot[channel][len(temperature_error_plot)//2:]
 
         """
         Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
