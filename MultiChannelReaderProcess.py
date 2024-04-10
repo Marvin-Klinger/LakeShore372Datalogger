@@ -62,7 +62,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filename='resistance_single_channel', thread_stop_indicator=Value('b', False)):
     loggers = []
-    for channel in channels:
+    for channel in range(17):
         lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filename)
         loggers.append(lgr)
 
