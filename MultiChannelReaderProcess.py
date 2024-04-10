@@ -7,6 +7,7 @@ from lakeshore import Model372InputSetupSettings, Model372SensorExcitationMode, 
     Model372AutoRangeMode, Model372InputSensorUnits, Model372MeasurementInputResistance
 import time
 import logging
+from os import makedirs
 from datetime import datetime
 import matplotlib.pyplot as plt
 from TemperatureCalibration import cal_mx_01 as cal_mk4
@@ -20,8 +21,9 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     name = f"logger {channel_number}"
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
+    makedirs(f"./{filepath}{_time.strftime('%Y-%m-%d')}")
     fh = logging.FileHandler(
-        f"./{str(filepath + _time.strftime('%Y-%m-%d-%H-%M-%S'))}ADR_Data_Channel{channel_number}{filename}.csv")
+        f"./{filepath}{_time.strftime('%Y-%m-%d')}/{_time.strftime('%Y-%m-%d-%H-%M-%S')}ADR_Data_Channel{channel_number}{filename}.csv")
     print(fh)
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
