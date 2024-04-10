@@ -17,12 +17,12 @@ def on_close(thread_stop_indicator):
 
 
 def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=',', filename=''):
-    name = "logger" + channel_number
+    name = f"logger {channel_number}"
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler(
-        './' + str(filepath + _time.strftime("%Y-%m-%d-%H-%M-%S")) + 'ADR_Data_Channel' + channel_number + filename +
-        '.csv')
+        f"./{str(filepath + _time.strftime('%Y-%m-%d-%H-%M-%S'))}ADR_Data_Channel{channel_number}{filename}.csv")
+    print(fh)
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -228,12 +228,12 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                     break
 
 
-def start_data_visualizer(queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
+def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
                           filename='resistance_single_channel', save_raw_data=True,
                           thread_stop_indicator=Value('b', False)):
-    visualizer = Process(target=visualize_single_channel, args=(queue, _time_at_beginning_of_experiment,
+    visualizer = Process(target=visualize_n_channels, args=(channels, queue, _time_at_beginning_of_experiment,
                                                                 measurements_per_scan, delimiter, filename,
-                                                                save_raw_data, thread_stop_indicator))
+                                                                thread_stop_indicator))
     visualizer.daemon = True
     visualizer.start()  # Launch reader_p() as another proc
     return visualizer
@@ -251,10 +251,10 @@ if __name__ == "__main__":
     ls_data_queue = Queue()
     # used to terminate the reader if visualizer is closed
     shared_stop_indicator = Value('b', False)
-    visualizer_process = start_data_visualizer(ls_data_queue, time_at_beginning_of_experiment,
+    visualizer_process = start_data_visualizer(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment,
                                                save_raw_data=_save_raw_data, filename=_filename,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_multi_channel(channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
+    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
