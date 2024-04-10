@@ -63,10 +63,10 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filename='resistance_single_channel', thread_stop_indicator=Value('b', False)):
-    loggers = []
-    for channel in range(17):
-        lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filename)
-        loggers.append(lgr)
+    loggers = [[] for _ in range(17)]
+    for channel in channels:
+        _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filename)
+        loggers[channel] = _lgr
 
 #TODO: this creates many potentially empty lists that will never be filled
     time_plot = [[] for _ in range(17)]
@@ -167,32 +167,26 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         if queue.qsize() < 2:
             axs[0].clear()
             axs[1].clear()
-            
+
+            for channel in channels:
+                axs[1].scatter(time_plot[channel], temperature_plot[channel])
+
+            for channel in channels:
+                axs[0].scatter(time_plot[channel], resistance_plot[channel])
+
             axs[0].set_xlabel('Elapsed time [s]')
             axs[0].set_ylabel('Resistance [Ohm]')
             axs[1].set_ylabel('Calibrated temperature [K]')
             axs[1].set_yscale('log')
-           
-            axs[0].set_title('R = ' + str(round(resistance_thermometer, 1)) + '±' + str(
-                round(resistance_thermometer_err, 1)) + ' Ω  T_cal = ' + str(
-                round(1000 * temperature, 1)) + ' ± ' + str(
-                round(1000 * temperature_error, 1)) + ' mK')
-            
-            for channel in channels:
 
-                # axs[0].set_data(time_plot, resistance_plot)
-                # axs[1].set_data(time_plot, temperature_plot)
+            axs[0].set_title("title")
 
-
-
-                # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-                # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
-
-                axs[0].scatter(time_plot[channel], resistance_plot[channel])
-                axs[1].scatter(time_plot[channel], temperature_plot[channel])
-
-                # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-                # draw the new information for the user
+            # axs[0].set_data(time_plot, resistance_plot)
+            # axs[1].set_data(time_plot, temperature_plot)
+            # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+            # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+            # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
+            # draw the new information for the user
             
             fig.canvas.draw()
             fig.canvas.flush_events()
@@ -204,25 +198,27 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
     """"""
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
-        for channel in channels:
-            if configure_input:
-                settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                                  Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                                  Model372AutoRangeMode.CURRENT, False,
-                                                                  Model372InputSensorUnits.OHMS,
-                                                                  Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+        if configure_input:
+            settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
+                                                              Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                              Model372AutoRangeMode.CURRENT, False,
+                                                              Model372InputSensorUnits.OHMS,
+                                                              Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+            for channel in channels:
                 instrument_372.configure_input(channel, settings_thermometer)
 
-            instrument_372.set_scanner_status(input_channel=channel, status=False)
-            time.sleep(4)
-            while True:
+        while True:
+            for channel in channels:
+                instrument_372.set_scanner_status(input_channel=channel, status=False)
+                time.sleep(4)
                 sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
                                               _time_at_beginning_of_experiment)
                 queue.put((channel, sample_data))
                 if thread_stop_indicator.value:
                     break
-        else:
-            while True:
+    else:
+        while True:
+            for channel in channels:
                 sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
                 print(queue.qsize())
                 queue.put((channel, sample_data))
@@ -246,7 +242,7 @@ if __name__ == "__main__":
     _measurements_per_scan = 70
     _filename = "Ba3GdB9O18_rerun2c_mx01"
     _save_raw_data = True
-    _lakeshore_channels = [1]
+    _lakeshore_channels = [1,2,3]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
