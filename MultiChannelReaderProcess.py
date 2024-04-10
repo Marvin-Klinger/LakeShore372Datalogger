@@ -188,8 +188,8 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
                 # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
                 # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
 
-                axs[0].scatter(time_plot, resistance_plot)
-                axs[1].scatter(time_plot, temperature_plot)
+                axs[0].scatter(time_plot[channel], resistance_plot[channel])
+                axs[1].scatter(time_plot[channel], temperature_plot[channel])
 
                 # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
                 # draw the new information for the user
