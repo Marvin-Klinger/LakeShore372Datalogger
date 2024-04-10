@@ -21,7 +21,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     name = f"logger {channel_number}"
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
-    makedirs(f"./{filepath}{_time.strftime('%Y-%m-%d')}", exist_ok=False)
+    makedirs(f"./{filepath}{_time.strftime('%Y-%m-%d')}", exist_ok=True)
     fh = logging.FileHandler(
         f"./{filepath}{_time.strftime('%Y-%m-%d')}/{_time.strftime('%Y-%m-%d-%H-%M-%S')}ADR_Data_Channel{channel_number}{filename}.csv")
     print(fh)
