@@ -32,9 +32,17 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
     if channel_settings is not None:
         model372.configure_input(channel_number, channel_settings)
 
-    data = pandas.DataFrame(columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
+    # data = pandas.DataFrame(columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
 
-    for _ in range(number_of_samples):
+    current_timestamp = datetime.now()
+    timedelta = current_timestamp - time_at_startup
+
+    readings = model372.get_all_input_readings(channel_number)
+    data = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
+                            readings['quadrature'], readings['power']]],
+                            columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
+
+    for _ in range(number_of_samples - 1):
         current_timestamp = datetime.now()
         timedelta = current_timestamp - time_at_startup
 
