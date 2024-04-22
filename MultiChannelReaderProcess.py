@@ -169,10 +169,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             axs[1].clear()
 
             for channel in channels:
-                axs[1].scatter(time_plot[channel], temperature_plot[channel])
+                axs[1].plot(time_plot[channel], temperature_plot[channel])
 
             for channel in channels:
-                axs[0].scatter(time_plot[channel], resistance_plot[channel])
+                axs[0].plot(time_plot[channel], resistance_plot[channel], label=f"Channel {channel}")
 
             axs[0].set_xlabel('Elapsed time [s]')
             axs[0].set_ylabel('Resistance [Ohm]')
