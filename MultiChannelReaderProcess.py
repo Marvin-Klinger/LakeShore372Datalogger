@@ -8,6 +8,7 @@ from lakeshore import Model372InputSetupSettings, Model372SensorExcitationMode, 
 import time
 import logging
 from os import makedirs
+import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
 from TemperatureCalibration import cal_mx_01 as cal_mk4
@@ -17,13 +18,12 @@ def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
 
 
-def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=',', filename=''):
+def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=','):
     name = f"logger {channel_number}"
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
-    makedirs(f"./{filepath}{_time.strftime('%Y-%m-%d')}", exist_ok=True)
     fh = logging.FileHandler(
-        f"./{filepath}{_time.strftime('%Y-%m-%d')}/{_time.strftime('%Y-%m-%d-%H-%M-%S')}ADR_Data_Channel{channel_number}{filename}.csv")
+        f"{filepath}/ADR_Data_Channel{channel_number}.csv")
     print(fh)
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
@@ -62,10 +62,10 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     return lgr
 
 
-def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filename='resistance_single_channel', thread_stop_indicator=Value('b', False)):
+def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filepath='this is mandatory', thread_stop_indicator=Value('b', False)):
     loggers = [[] for _ in range(17)]
     for channel in channels:
-        _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filename)
+        _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filepath)
         loggers[channel] = _lgr
 
 #TODO: this creates many potentially empty lists that will never be filled
@@ -227,10 +227,10 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
 
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
-                          filename='resistance_single_channel', save_raw_data=True,
+                          filepath='This is mandatory', save_raw_data=True,
                           thread_stop_indicator=Value('b', False)):
     visualizer = Process(target=visualize_n_channels, args=(channels, queue, _time_at_beginning_of_experiment,
-                                                                measurements_per_scan, delimiter, filename,
+                                                                measurements_per_scan, delimiter, filepath,
                                                                 thread_stop_indicator))
     visualizer.daemon = True
     visualizer.start()  # Launch reader_p() as another proc
@@ -240,9 +240,11 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 70
-    _filename = "Ba3GdB9O18_rerun2c_mx01"
+    _filepath = sys.argv[1]
     _save_raw_data = True
-    _lakeshore_channels = [1,2,3]
+    with open(f"{_filepath}/settings.json", 'r') as settingsFile:
+        settingsJSON = json.load(settingsFile)
+    _lakeshore_channels = settingsJSON["Channels"]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
@@ -250,7 +252,7 @@ if __name__ == "__main__":
     # used to terminate the reader if visualizer is closed
     shared_stop_indicator = Value('b', False)
     visualizer_process = start_data_visualizer(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment,
-                                               save_raw_data=_save_raw_data, filename=_filename,
+                                               save_raw_data=_save_raw_data, filepath=_filepath,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
     read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
