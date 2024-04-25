@@ -49,7 +49,7 @@ def writeSettings(dirpath):
     with open(f"{dirpath}/settings.json", 'r') as settingsFile:
         settingsJSON = json.load(settingsFile)
         print(settingsJSON["Channels"])
-       # os.system(f"python3 MultiChannelReaderProcess.py {dirpath}"
+        os.system(f"python3 MultiChannelReaderProcess.py {dirpath}"
     return
 
 ttk.Label(frm, text="Filepath").grid(column=0, row=2)
