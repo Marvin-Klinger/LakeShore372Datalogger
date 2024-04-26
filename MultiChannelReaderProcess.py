@@ -10,7 +10,7 @@ import logging
 from os import makedirs
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_mx_01 as cal_mk4
+from TemperatureCalibration import cal_cam_cool as cal_mk4
 
 
 def on_close(thread_stop_indicator):
@@ -21,10 +21,10 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     name = f"logger {channel_number}"
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
-    makedirs(f"./{filepath}{_time.strftime('%Y-%m-%d')}", exist_ok=True)
+    makedirs(f"./{_time.strftime('%Y-%m-%d')}/{filepath}", exist_ok=True)
     fh = logging.FileHandler(
-        f"./{filepath}{_time.strftime('%Y-%m-%d')}/{_time.strftime('%Y-%m-%d-%H-%M-%S')}ADR_Data_Channel{channel_number}{filename}.csv")
-    print(fh)
+        f"./{_time.strftime('%Y-%m-%d')}/{filepath}/{_time.strftime('%Y-%m-%d-%H-%M-%S')}ADR_Data_Channel{channel_number}{filename}.csv")
+
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -240,7 +240,7 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 70
-    _filename = "Ba3GdB9O18_rerun2c_mx01"
+    _filename = "mx08mx09calibrationADRCAMCOOLKIT_cutWires"
     _save_raw_data = True
     _lakeshore_channels = [1,2,3]
 
