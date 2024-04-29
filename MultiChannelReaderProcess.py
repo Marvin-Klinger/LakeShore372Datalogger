@@ -16,6 +16,8 @@ from TemperatureCalibration import cal_mx_01 as cal_mk4
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
+    #TODO: remove
+    print("The stop indicator was set to True!")
 
 
 def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=','):
@@ -145,6 +147,9 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(quadrature_thermometer_err) + delimiter +
             str(power_thermometer) + delimiter +
             str(power_thermometer_err))
+
+        if thread_stop_indicator.value:
+            break
 
         if queue.qsize() > 5:
             """
