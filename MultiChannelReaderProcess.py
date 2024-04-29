@@ -149,6 +149,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(power_thermometer_err))
 
         if thread_stop_indicator.value:
+            print("Visualizer should shutdown now")
             break
 
         if queue.qsize() > 5:
@@ -220,6 +221,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                                               _time_at_beginning_of_experiment)
                 queue.put((channel, sample_data))
                 if thread_stop_indicator.value:
+                    print("Channel reader should shutdown now")
                     break
     else:
         while True:
@@ -263,3 +265,4 @@ if __name__ == "__main__":
     read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
+    print("How did I get here?")
