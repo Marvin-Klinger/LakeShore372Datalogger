@@ -96,6 +96,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         axs[1].errorbar(time_plot[i], temperature_plot[i], yerr=temperature_error_plot[i], fmt='o')
 
     while True:
+        if thread_stop_indicator.value:
+            print("Visualizer should shutdown now")
+            break
+
         # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
             fig.canvas.draw()
@@ -147,10 +151,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(quadrature_thermometer_err) + delimiter +
             str(power_thermometer) + delimiter +
             str(power_thermometer_err))
-
-        if thread_stop_indicator.value:
-            print("Visualizer should shutdown now")
-            break
 
         if queue.qsize() > 5:
             """
@@ -220,18 +220,18 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                 sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
                                               _time_at_beginning_of_experiment)
                 queue.put((channel, sample_data))
-                if thread_stop_indicator.value:
-                    print("Channel reader should shutdown now")
-                    break
+            if thread_stop_indicator.value:
+                print("Channel reader should shutdown now")
+                break
     else:
         while True:
             for channel in channels:
                 sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
                 print(queue.qsize())
                 queue.put((channel, sample_data))
-                if thread_stop_indicator.value:
-                    break
-
+            if thread_stop_indicator.value:
+                break
+    print("End of read_multi_channel")
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
                           filepath='This is mandatory', save_raw_data=True,
