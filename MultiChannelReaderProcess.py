@@ -22,7 +22,6 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler(
         f"{filepath}/Channel {channel_number}.csv")
-    print(fh)
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
@@ -241,7 +240,7 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 70
-    _filepath = "C:\QdDynacool\Data\\userdata\CHE\\testmeasurement" #sys.argv[1]
+    _filepath = sys.argv[1]
     _save_raw_data = True
     with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)

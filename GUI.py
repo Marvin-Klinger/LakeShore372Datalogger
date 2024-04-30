@@ -68,31 +68,32 @@ def startProcessing(dirpath, i):
 def emptyFunction():
     return
 
-ttk.Label(frm, text="Filepath").grid(column=0, row=2)
-fileField = Entry(frm, validate='key', validatecommand=(frm.register(validateConfig), '%P'))
-fileField.grid(column=1, row=2)
-ttk.Button(frm, text="Explore", command=fileBrowsing).grid(column=2, row=2, sticky='w')
-importSettingsBtn = ttk.Button(frm, text="Import settings", command=readSettings) 
+if __name__ == "__main__":
+    ttk.Label(frm, text="Filepath").grid(column=0, row=2)
+    fileField = Entry(frm, validate='key', validatecommand=(frm.register(validateConfig), '%P'))
+    fileField.grid(column=1, row=2)
+    ttk.Button(frm, text="Explore", command=fileBrowsing).grid(column=2, row=2, sticky='w')
+    importSettingsBtn = ttk.Button(frm, text="Import settings", command=readSettings) 
 
-#Create Checkboxes
-ttk.Label(frm, text="Channels").grid(column=0, row=4)
-checkBoxFrame = Frame(frm)
-checkBoxFrame.grid(column=1, row=4, columnspan=3)
+    #Create Checkboxes
+    ttk.Label(frm, text="Channels").grid(column=0, row=4)
+    checkBoxFrame = Frame(frm)
+    checkBoxFrame.grid(column=1, row=4, columnspan=3)
 
-checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 1", variable=channels[0], onvalue=1)
-checkBox.grid(column=0, row=4)
+    checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 1", variable=channels[0], onvalue=1)
+    checkBox.grid(column=0, row=4)
 
-checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 2", variable=channels[1], onvalue=2)
-checkBox.grid(column=1, row=4)
+    checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 2", variable=channels[1], onvalue=2)
+    checkBox.grid(column=1, row=4)
 
 
-checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 3", variable=channels[2], onvalue=3)
-checkBox.grid(column=2, row=4)
+    checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 3", variable=channels[2], onvalue=3)
+    checkBox.grid(column=2, row=4)
 
-checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 4", variable=channels[3], onvalue=4)
-checkBox.grid(column=3, row=4)
+    checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 4", variable=channels[3], onvalue=4)
+    checkBox.grid(column=3, row=4)
 
-startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath))
-startButton.grid(column=0, row=5, columnspan=4)
+    startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath))
+    startButton.grid(column=0, row=5, columnspan=4)
 
-root.mainloop()
+    root.mainloop()
