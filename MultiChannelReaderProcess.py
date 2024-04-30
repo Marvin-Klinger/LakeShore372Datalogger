@@ -2,9 +2,8 @@ from multiprocessing import Process, Queue, Value
 import numpy as np
 from LS_Datalogger2_v2 import acquire_samples
 from emulator import acquire_samples_debug
-from lakeshore import Model372
-from lakeshore import Model372InputSetupSettings, Model372SensorExcitationMode, Model372MeasurementInputCurrentRange, \
-    Model372AutoRangeMode, Model372InputSensorUnits, Model372MeasurementInputResistance
+from lakeshore import Model372SensorExcitationMode
+from lakeshore import Model372, Model372InputSetupSettings
 import time
 import logging
 from os import makedirs
@@ -204,11 +203,11 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
         if configure_input:
-            settings_thermometer = Model372InputSetupSettings(Model372SensorExcitationMode.CURRENT,
-                                                              Model372MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                              Model372AutoRangeMode.CURRENT, False,
-                                                              Model372InputSensorUnits.OHMS,
-                                                              Model372MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
+            settings_thermometer = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
+                                                              Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                                                              Model372.AutoRangeMode.CURRENT, False,
+                                                              Model372.InputSensorUnits.OHMS,
+                                                              Model372.MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
             for channel in channels:
                 instrument_372.configure_input(channel, settings_thermometer)
 

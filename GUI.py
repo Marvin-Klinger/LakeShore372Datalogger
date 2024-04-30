@@ -1,6 +1,7 @@
 from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar
-from os import path
+import os
 import json
+from multiprocessing import Process
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -22,7 +23,7 @@ def fileBrowsing():       #Open filebrowser and set
 def validateConfig(dirpath):
     global filepath 
     filepath = dirpath
-    if(path.isfile(f"{dirpath}/settings.json")):
+    if(os.path.isfile(f"{dirpath}/settings.json")):
         importSettingsBtn.grid(column=2, row=3)
     else:
         importSettingsBtn.grid_forget()
@@ -38,23 +39,27 @@ def readSettings():
     return
 
 def writeSettings(dirpath):
-    if(path.isfile(f"{dirpath}/settings.json")):
+    os.makedirs(dirpath, exist_ok=True) #Tkinter askdir does not offer to create new Folder on Linuxplatforms
+    if(os.path.isfile(f"{dirpath}/settings.json")):
         if not messagebox.askokcancel(parent=frm, title="Solidcryo", message="You are about to overwrite your already existing Settingsfile and eventually datafiles.", detail="Proceed?", icon='warning'):
             return
+    #Convert Tk-Integer to normal Integer
     myChannels = []
     for channel in channels:
         myChannels.append(channel.get())
+    #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels))}, settingsFile)
-        DynaProcess = Process(target=startProcessing, args=(dirpath))
+        DynaProcess = Process(target=startProcessing, args=(dirpath, 3))
         DynaProcess.start()
-        startButton.config(text="Kill the child", command=lambda:stopProcessing(DynaProcess))
+        #global startButton
+        #startButton.configure(text="Kill the child", command=lambda:stopProcessing(DynaProcess))
         while(DynaProcess.is_alive()):
             root.update()
-        startButton.config(text="START", command=lambda:writeSettings(dirpath))
+        #startButton.config(text="START", command=lambda:writeSettings(dirpath))
     return
 
-def startProcessing(dirpath):
+def startProcessing(dirpath, i):
     os.system(f"python3 MultiChannelReaderProcess.py {dirpath}")
     return
 
