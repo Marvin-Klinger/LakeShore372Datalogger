@@ -97,7 +97,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     while True:
         if thread_stop_indicator.value:
-            print("Visualizer should shutdown now")
             break
 
         # redraw the plot to keep the UI going if there is no new data
@@ -221,7 +220,6 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                                               _time_at_beginning_of_experiment)
                 queue.put((channel, sample_data))
             if thread_stop_indicator.value:
-                print("Channel reader should shutdown now")
                 break
     else:
         while True:
@@ -231,7 +229,6 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                 queue.put((channel, sample_data))
             if thread_stop_indicator.value:
                 break
-    print("End of read_multi_channel")
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
                           filepath='This is mandatory', save_raw_data=True,
@@ -265,4 +262,3 @@ if __name__ == "__main__":
     read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
-    print("How did I get here?")

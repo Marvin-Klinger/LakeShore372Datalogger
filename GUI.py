@@ -46,10 +46,21 @@ def writeSettings(dirpath):
         myChannels.append(channel.get())
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels))}, settingsFile)
-    with open(f"{dirpath}/settings.json", 'r') as settingsFile:
-        settingsJSON = json.load(settingsFile)
-        print(settingsJSON["Channels"])
-        os.system(f"python3 MultiChannelReaderProcess.py {dirpath}"
+        DynaProcess = Process(target=startProcessing, args=(dirpath))
+        DynaProcess.start()
+        startButton.config(text="Kill the child", command=lambda:stopProcessing(DynaProcess))
+        while(DynaProcess.is_alive()):
+            root.update()
+        startButton.config(text="START", command=lambda:writeSettings(dirpath))
+    return
+
+def startProcessing(dirpath):
+    os.system(f"python3 MultiChannelReaderProcess.py {dirpath}")
+    return
+
+def stopProcessing(theProcess=None):
+    if theProcess is not None:
+        theProcess.kill()
     return
 
 ttk.Label(frm, text="Filepath").grid(column=0, row=2)
@@ -76,6 +87,7 @@ checkBox.grid(column=2, row=4)
 checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 4", variable=channels[3], onvalue=4)
 checkBox.grid(column=3, row=4)
 
-ttk.Button(frm, text="START", command=lambda:writeSettings(filepath)).grid(column=0, row=5, columnspan=4)
+startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath)).grid(column=0, row=5, columnspan=4)
+
 
 root.mainloop()
