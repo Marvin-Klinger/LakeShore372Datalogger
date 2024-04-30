@@ -2,12 +2,12 @@ from multiprocessing import Process, Queue, Value
 import numpy as np
 from LS_Datalogger2_v2 import acquire_samples
 from emulator import acquire_samples_debug
-from lakeshore import Model372SensorExcitationMode
 from lakeshore import Model372, Model372InputSetupSettings
 import time
 import logging
 from os import makedirs
 import sys
+import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 from TemperatureCalibration import cal_mx_01 as cal_mk4
@@ -24,7 +24,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler(
-        f"{filepath}/ADR_Data_Channel{channel_number}.csv")
+        f"{filepath}/Channel {channel_number}.csv")
     print(fh)
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
@@ -222,6 +222,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
                 break
     else:
         while True:
+            time.sleep(2)
             for channel in channels:
                 sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
                 print(queue.qsize())
@@ -245,7 +246,7 @@ if __name__ == "__main__":
     _measurements_per_scan = 70
     _filepath = sys.argv[1]
     _save_raw_data = True
-    with open(f"{_filepath}/settings.json", 'r') as settingsFile:
+    with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)
     _lakeshore_channels = settingsJSON["Channels"]
 

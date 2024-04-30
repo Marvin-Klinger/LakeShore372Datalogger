@@ -2,6 +2,7 @@ from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar
 import os
 import json
 from multiprocessing import Process
+import time
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -33,8 +34,7 @@ def readSettings():
     myChannels = []
     for channel in channels:
         myChannels.append(channel.get())
-    print(myChannels)
-    if(messagebox.askyesno("Import Settings", "Your current selection will be overwritten")):
+    if not(messagebox.askyesno(parent=frm, title="Import Settings", message="Your current selection will be overwritten", detail="Nothing will happen. Not implemented yet")):
         return
     return
 
@@ -50,22 +50,22 @@ def writeSettings(dirpath):
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels))}, settingsFile)
-        DynaProcess = Process(target=startProcessing, args=(dirpath, 3))
-        DynaProcess.start()
-        #global startButton
-        #startButton.configure(text="Kill the child", command=lambda:stopProcessing(DynaProcess))
-        while(DynaProcess.is_alive()):
-            root.update()
-        #startButton.config(text="START", command=lambda:writeSettings(dirpath))
+    DynaProcess = Process(target=startProcessing, args=(dirpath, 3))
+    DynaProcess.start()
+    startButton["state"] = "disabled"
+    startButton.configure(text="Running...", command=lambda:emptyFunction)
+    while(DynaProcess.is_alive()):
+        root.update()
+        time.sleep(0.5)
+    startButton.config(text="START", command=lambda:writeSettings(dirpath))
+    startButton["state"] = "enabled"
     return
 
 def startProcessing(dirpath, i):
     os.system(f"python3 MultiChannelReaderProcess.py {dirpath}")
     return
 
-def stopProcessing(theProcess=None):
-    if theProcess is not None:
-        theProcess.kill()
+def emptyFunction():
     return
 
 ttk.Label(frm, text="Filepath").grid(column=0, row=2)
@@ -92,7 +92,7 @@ checkBox.grid(column=2, row=4)
 checkBox = ttk.Checkbutton(checkBoxFrame, text="Ch 4", variable=channels[3], onvalue=4)
 checkBox.grid(column=3, row=4)
 
-startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath)).grid(column=0, row=5, columnspan=4)
-
+startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath))
+startButton.grid(column=0, row=5, columnspan=4)
 
 root.mainloop()
