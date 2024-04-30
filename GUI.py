@@ -50,7 +50,7 @@ def writeSettings(dirpath):
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels))}, settingsFile)
-    DynaProcess = Process(target=startProcessing, args=(dirpath, 3))
+    DynaProcess = Process(target=startProcessing, args=(dirpath, 0))
     DynaProcess.start()
     startButton["state"] = "disabled"
     startButton.configure(text="Running...", command=lambda:emptyFunction)
@@ -62,7 +62,7 @@ def writeSettings(dirpath):
     return
 
 def startProcessing(dirpath, i):
-    os.system(f"python3 MultiChannelReaderProcess.py {dirpath}")
+    os.system(f"python ./MultiChannelReaderProcess.py {dirpath}")
     return
 
 def emptyFunction():

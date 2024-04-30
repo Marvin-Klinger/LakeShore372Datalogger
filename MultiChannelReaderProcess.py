@@ -15,9 +15,6 @@ from TemperatureCalibration import cal_mx_01 as cal_mk4
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
-    #TODO: remove
-    print("The stop indicator was set to True!")
-
 
 def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=','):
     name = f"logger {channel_number}"
@@ -244,7 +241,7 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
     _measurements_per_scan = 70
-    _filepath = sys.argv[1]
+    _filepath = "C:\QdDynacool\Data\\userdata\CHE\\testmeasurement" #sys.argv[1]
     _save_raw_data = True
     with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)
