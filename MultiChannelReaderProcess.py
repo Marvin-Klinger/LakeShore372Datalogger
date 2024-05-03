@@ -172,7 +172,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
                 axs[1].scatter(time_plot[channel], temperature_plot[channel])
 
             for channel in channels:
-                axs[0].scatter(time_plot[channel], resistance_plot[channel])
+                axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
 
             axs[0].set_xlabel('Elapsed time [s]')
             axs[0].set_ylabel('Resistance [Ohm]')
@@ -189,6 +189,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             # draw the new information for the user
             
             fig.canvas.draw()
+            axs[0].legend()
             fig.canvas.flush_events()
 
 
