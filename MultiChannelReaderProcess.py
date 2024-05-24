@@ -256,6 +256,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filepath=_filepath,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=False,
+    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=True,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()
