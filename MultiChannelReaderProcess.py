@@ -240,12 +240,14 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
 
 if __name__ == "__main__":
     """Use these options to configure the measurement"""
-    _measurements_per_scan = 70
     _filepath = sys.argv[1]
     _save_raw_data = True
     with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)
+        print(settingsJSON)
     _lakeshore_channels = settingsJSON["Channels"]
+    _debug=settingsJSON["debug"]
+    _measurements_per_scan = settingsJSON["samplerate"]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
@@ -256,6 +258,6 @@ if __name__ == "__main__":
                                                save_raw_data=_save_raw_data, filepath=_filepath,
                                                measurements_per_scan=_measurements_per_scan,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=True,
+    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=_debug,
                         thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
     visualizer_process.join()

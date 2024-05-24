@@ -27,11 +27,10 @@ def acquire_samples_debug(model372, number_of_samples, channel_number, time_at_s
         timedelta = current_timestamp - time_at_startup
 
         readings = {
-            "resistance": rng.random()*1000 + 6000,
-            "quadrature": rng.random() * 10 + 60,
-            "power": rng.random() * 1E-6 + 6E-6,
+            "resistance": _ * rng.random()*1000 + 6000,
+            "quadrature": _ * rng.random() * 10 + 60,
+            "power": _ * rng.random() * 1E-6 + 6E-6,
         }
-
         series_for_concat = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
                                                readings['quadrature'], readings['power']]],
                                              columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
