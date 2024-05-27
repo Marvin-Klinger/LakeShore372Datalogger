@@ -4,6 +4,8 @@ import json
 from multiprocessing import Process
 import time
 
+import MultiChannelReaderProcess
+
 root = Tk()
 frm = ttk.Frame(root)
 frm.grid()
