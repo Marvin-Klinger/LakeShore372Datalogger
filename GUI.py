@@ -1,7 +1,7 @@
 from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar
 import os
 import json
-from multiprocessing import Process
+from multiprocessing import Process, freeze_support
 import time
 
 import MultiChannelReaderProcess
@@ -69,13 +69,15 @@ def writeSettings(dirpath):
     return
 
 def startProcessing(dirpath, i):
-    os.system(f"python ./MultiChannelReaderProcess.py {dirpath}")
+    MultiChannelReaderProcess.main(dirpath)
+    #os.system(f"../MultiChannelReaderProcess/MultiChannelReaderProcess.exe {dirpath}")
     return
 
 def emptyFunction():
     return
 
 if __name__ == "__main__":
+    freeze_support()
     ttk.Label(frm, text="Filepath").grid(column=0, row=2)
     fileField = Entry(frm, validate='key', validatecommand=(frm.register(validateConfig), '%P'))
     fileField.grid(column=1, row=2)

@@ -238,9 +238,9 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
     return visualizer
 
 
-if __name__ == "__main__":
+def main(path):
     """Use these options to configure the measurement"""
-    _filepath = sys.argv[1]
+    _filepath = path
     _save_raw_data = True
     with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)
