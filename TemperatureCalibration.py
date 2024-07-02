@@ -3,7 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename, askdirectory
 import os
+from UliEngineering.Physics.RTD import pt1000_temperature
 
+
+def cal_pt1000(r):
+    t = pt1000_temperature(r) + 273.15
+    if t < 0:
+        t = 9999
+    return t
 
 def cal_cam_cool(x):
     x = 11.2 - np.log(x - 1400)

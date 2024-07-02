@@ -10,7 +10,7 @@ import sys
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_mx_01 as cal_mk4
+from TemperatureCalibration import cal_pt1000 as cal_mk4
 
 
 def on_close(thread_stop_indicator):
