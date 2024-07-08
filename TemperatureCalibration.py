@@ -5,6 +5,8 @@ from tkinter.filedialog import askopenfilename, askdirectory
 import os
 from UliEngineering.Physics.RTD import pt1000_temperature
 
+def cal_generic_pt1000(x):
+    return (cal_pt1000_Ch1_Baffle5(x) + cal_pt1000_Ch2_Baffle4(x)) / 2
 
 def cal_pt1000_Ch1_Baffle5(x):
     if x < 105:
