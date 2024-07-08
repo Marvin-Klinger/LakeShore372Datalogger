@@ -6,12 +6,12 @@ import os
 from UliEngineering.Physics.RTD import pt1000_temperature
 
 
-def cal_pt1000_a(x):
+def cal_pt1000_Ch1_Baffle5(x):
     if x < 105:
         return 5.74834 + 0.43974 * x**0.88354 + 4.11545 * np.log(x - 10.34234) + 3.42096 * np.tanh(x / (-8.85332*(10**14)) + 3.37344*(10**15))
     return cal_pt1000(x)
 
-def cal_pt1000_b(x):
+def cal_pt1000_Ch2_Baffle4(x):
     if x < 89.58:
         return 7.85391 + 0.451 * x**0.87903 + 4.0281 * np.log(x -7.79381) - 2.19714 * np.tanh(x / (-2.36548*(10*15)) -7.27357*(10**19)) 
     return cal_pt1000(x)
