@@ -1,0 +1,5 @@
+numpy
+pandas
+lakeshore
+matplotlib
+UliEngineering
