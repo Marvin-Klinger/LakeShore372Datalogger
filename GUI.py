@@ -1,9 +1,9 @@
-from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar
+from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar, StringVar
 import os
 import json
 from multiprocessing import Process, freeze_support
 import time
-
+import TemperatureCalibration
 import MultiChannelReaderProcess
 
 root = Tk()
@@ -18,6 +18,10 @@ for i in range(0,4):
     channels.append(IntVar())
 
 debugState = IntVar()
+
+calibrations = []
+for i in range(0,4):
+    calibrations.append(StringVar())
 
 def fileBrowsing():       #Open filebrowser and set
     filepath = filedialog.askdirectory()
@@ -54,9 +58,12 @@ def writeSettings(dirpath):
     myChannels = []
     for channel in channels:
         myChannels.append(channel.get())
+    myCalibrations = []
+    for calibration in calibrations:
+        myCalibrations.append(calibration.get())
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
-        json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels)), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get())}, settingsFile)
+        json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels)), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations}, settingsFile)
     DynaProcess = Process(target=startProcessing, args=(dirpath, 0))
     DynaProcess.start()
     startButton["state"] = "disabled"
@@ -89,15 +96,11 @@ if __name__ == "__main__":
     checkBoxFrame = Frame(frm)
     checkBoxFrame.grid(column=1, row=4, columnspan=4)
 
-    ttk.Checkbutton(checkBoxFrame, text="Ch 1", variable=channels[0], onvalue=1).grid(column=0, row=4)
+    polynomials = dir(TemperatureCalibration)
+    for i in range(0, 4):
+        ttk.Checkbutton(checkBoxFrame, text=f"Ch {i+1}", variable=channels[i], onvalue=i+1).grid(column=i, row=4)
+        ttk.OptionMenu(checkBoxFrame, calibrations[i], *polynomials).grid(column=i, row=5)
 
-    ttk.Checkbutton(checkBoxFrame, text="Ch 2", variable=channels[1], onvalue=2).grid(column=1, row=4)
-
-
-    ttk.Checkbutton(checkBoxFrame, text="Ch 3", variable=channels[2], onvalue=3).grid(column=2, row=4)
-
-    ttk.Checkbutton(checkBoxFrame, text="Ch 4", variable=channels[3], onvalue=4).grid(column=3, row=4)
-    
     ttk.Label(frm, text="Samplerate").grid(column=0, row=5)
     sampleRateField = Entry(frm, validate='key', validatecommand=(frm.register(lambda x: x.isdigit() or not x), '%P'), width=3)
     sampleRateField.grid(column=1, row=5, columnspan=1, sticky='w')
