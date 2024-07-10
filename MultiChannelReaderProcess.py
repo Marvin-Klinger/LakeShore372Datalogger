@@ -10,7 +10,7 @@ import sys
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
-from TemperatureCalibration import cal_pt1000 as cal_mk4
+import TemperatureCalibration
 
 
 def on_close(thread_stop_indicator):
@@ -59,7 +59,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     return lgr
 
 
-def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',', filepath='this is mandatory', thread_stop_indicator=Value('b', False)):
+def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
     loggers = [[] for _ in range(17)]
     for channel in channels:
         _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filepath)
@@ -117,12 +117,13 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature = cal_mk4(resistance_thermometer)
+        temperature_func = getattr(TemperatureCalibration, temperature_calibrations[channel_index - 1])
+        temperature = temperature_func(resistance_thermometer)
         temperature_plot[channel_index].append(temperature)
 
         # calculate temperature error
-        temperature_upper = cal_mk4(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = cal_mk4(resistance_thermometer + resistance_thermometer_err)
+        temperature_upper = temperature_func(resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = temperature_func(resistance_thermometer + resistance_thermometer_err)
         # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error = (temperature_upper - temperature_lower) / 2
         temperature_error = np.absolute(temperature_error)
@@ -169,7 +170,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             axs[1].clear()
 
             for channel in channels:
-                axs[1].scatter(time_plot[channel], temperature_plot[channel])
+                axs[1].scatter(time_plot[channel], temperature_plot[channel], label=f"Ch {channel}")
 
             for channel in channels:
                 axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
@@ -193,8 +194,8 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             fig.canvas.flush_events()
 
 
-def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, configure_input=False,
-                        ip_address="192.168.0.12", measurements_per_scan=70, thread_stop_indicator=Value('b', False),
+def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
+                        ip_address="192.168.0.12", thread_stop_indicator=Value('b', False),
                         debug=False):
     """"""
     if not debug:
@@ -227,12 +228,11 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, config
             if thread_stop_indicator.value:
                 break
 
-def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan=70, delimiter=',',
-                          filepath='This is mandatory', save_raw_data=True,
+def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',',
+                          save_raw_data=True,
                           thread_stop_indicator=Value('b', False)):
     visualizer = Process(target=visualize_n_channels, args=(channels, queue, _time_at_beginning_of_experiment,
-                                                                measurements_per_scan, delimiter, filepath,
-                                                                thread_stop_indicator))
+                                                                measurements_per_scan, filepath, temperature_calibrations, delimiter, thread_stop_indicator))
     visualizer.daemon = True
     visualizer.start()  # Launch reader_p() as another proc
     return visualizer
@@ -248,16 +248,16 @@ def main(path):
     _lakeshore_channels = settingsJSON["Channels"]
     _debug=settingsJSON["debug"]
     _measurements_per_scan = settingsJSON["samplerate"]
+    _temperature_calibrations = settingsJSON["calibration"]
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
     ls_data_queue = Queue()
     # used to terminate the reader if visualizer is closed
     shared_stop_indicator = Value('b', False)
-    visualizer_process = start_data_visualizer(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment,
-                                               save_raw_data=_save_raw_data, filepath=_filepath,
-                                               measurements_per_scan=_measurements_per_scan,
+    visualizer_process = start_data_visualizer(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, _measurements_per_scan, _filepath, _temperature_calibrations,
+                                               save_raw_data=_save_raw_data,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, debug=_debug,
-                        thread_stop_indicator=shared_stop_indicator, measurements_per_scan=_measurements_per_scan)
+    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, _measurements_per_scan, debug=_debug,
+                        thread_stop_indicator=shared_stop_indicator)
     visualizer_process.join()

@@ -65,7 +65,7 @@ def writeSettings(dirpath):
         myCalibrations = numpy.append(myCalibrations, calibration.get())
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
-        json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations[myChannels != 0].tolist()}, settingsFile)
+        json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations.tolist()}, settingsFile)
     DynaProcess = multiprocessing.Process(target=startProcessing, args=(dirpath, 0))
     DynaProcess.start()
     startButton["state"] = "disabled"
@@ -79,7 +79,6 @@ def writeSettings(dirpath):
 
 def startProcessing(dirpath, i):
     MultiChannelReaderProcess.main(dirpath)
-    #os.system(f"../MultiChannelReaderProcess/MultiChannelReaderProcess.exe {dirpath}")
     return
 
 def emptyFunction():
@@ -102,7 +101,9 @@ if __name__ == "__main__":
     checkBoxFrame = Frame(frm)
     checkBoxFrame.grid(column=1, row=4, columnspan=4)
 
-    polynomials = dir(TemperatureCalibration)
+    excludedPolynomials = ['np', 'os', 'pd', 'plt', 'askdirectory', 'askopenfilename', 'calibrate_all_files_in_dir', 'show_plot']
+    polynomials = [p for p in dir(TemperatureCalibration) if not(p.startswith('__') or (p in excludedPolynomials))]
+    print(polynomials)
     for i in range(0, 4):
         ttk.Checkbutton(checkBoxFrame, text=f"Ch {i+1}", variable=channels[i], onvalue=i+1).grid(column=i, row=4)
         ttk.OptionMenu(checkBoxFrame, calibrations[i], *polynomials).grid(column=i, row=5)
