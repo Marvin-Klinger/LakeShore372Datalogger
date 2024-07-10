@@ -103,10 +103,9 @@ if __name__ == "__main__":
 
     excludedPolynomials = ['np', 'os', 'pd', 'plt', 'askdirectory', 'askopenfilename', 'calibrate_all_files_in_dir', 'show_plot']
     polynomials = [p for p in dir(TemperatureCalibration) if not(p.startswith('__') or (p in excludedPolynomials))]
-    print(polynomials)
     for i in range(0, 4):
         ttk.Checkbutton(checkBoxFrame, text=f"Ch {i+1}", variable=channels[i], onvalue=i+1).grid(column=i, row=4)
-        ttk.OptionMenu(checkBoxFrame, calibrations[i], *polynomials).grid(column=i, row=5)
+        ttk.OptionMenu(checkBoxFrame, calibrations[i], "None", "None", *polynomials).grid(column=i, row=5)
 
     ttk.Label(frm, text="Samplerate").grid(column=0, row=5)
     sampleRateField = Entry(frm, validate='key', validatecommand=(frm.register(lambda x: x.isdigit() or not x), '%P'), width=3)

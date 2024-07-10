@@ -117,7 +117,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-        temperature_func = getattr(TemperatureCalibration, temperature_calibrations[channel_index - 1])
+        try:
+            temperature_func = getattr(TemperatureCalibration, temperature_calibrations[channel_index - 1])
+        except AttributeError:
+            temperature_func = lambda x : -2
         temperature = temperature_func(resistance_thermometer)
         temperature_plot[channel_index].append(temperature)
 
@@ -165,33 +168,34 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         getting to long. 
         """
         #TODO: for all time series
-        if queue.qsize() < 2:
-            axs[0].clear()
-            axs[1].clear()
+        if fig.canvas.toolbar.mode == '':
+            if queue.qsize() < 2:
+                axs[0].clear()
+                axs[1].clear()
 
-            for channel in channels:
-                axs[1].scatter(time_plot[channel], temperature_plot[channel], label=f"Ch {channel}")
+                for channel in channels:
+                    axs[1].scatter(time_plot[channel], temperature_plot[channel], label=f"Ch {channel}")
 
-            for channel in channels:
-                axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
+                for channel in channels:
+                        axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
 
-            axs[0].set_xlabel('Elapsed time [s]')
-            axs[0].set_ylabel('Resistance [Ohm]')
-            axs[1].set_ylabel('Calibrated temperature [K]')
-            axs[1].set_yscale('log')
+                axs[0].set_xlabel('Elapsed time [s]')
+                axs[0].set_ylabel('Resistance [Ohm]')
+                axs[1].set_ylabel('Calibrated temperature [K]')
+                axs[1].set_yscale('log')
 
-            axs[0].set_title("title")
+                axs[0].set_title("title")
 
-            # axs[0].set_data(time_plot, resistance_plot)
-            # axs[1].set_data(time_plot, temperature_plot)
-            # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-            # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
-            # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-            # draw the new information for the user
-            
-            fig.canvas.draw()
-            axs[0].legend()
-            fig.canvas.flush_events()
+                # axs[0].set_data(time_plot, resistance_plot)
+                # axs[1].set_data(time_plot, temperature_plot)
+                # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
+                # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
+                # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
+                # draw the new information for the user
+                
+                fig.canvas.draw()
+                axs[0].legend()
+                fig.canvas.flush_events()
 
 
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
