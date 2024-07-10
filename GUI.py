@@ -1,10 +1,12 @@
 from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar, StringVar
 import os
 import json
-from multiprocessing import Process, freeze_support
+#from multiprocessing import Process, freeze_support
+import multiprocessing
 import time
 import TemperatureCalibration
 import MultiChannelReaderProcess
+import numpy
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -34,10 +36,10 @@ def fileBrowsing():       #Open filebrowser and set
 def validateConfig(dirpath):
     global filepath 
     filepath = dirpath
-    if(os.path.isfile(f"{dirpath}/settings.json")):
-        importSettingsBtn.grid(column=2, row=3)
-    else:
-        importSettingsBtn.grid_forget()
+    #if(os.path.isfile(f"{dirpath}/settings.json")):
+    #    importSettingsBtn.grid(column=2, row=3)
+    #else:
+    #    importSettingsBtn.grid_forget()
     return True
 
 #TODO: Implement an actual import Settings logic
@@ -55,16 +57,16 @@ def writeSettings(dirpath):
         if not messagebox.askokcancel(parent=frm, title="Solidcryo", message="You are about to overwrite your already existing Settingsfile and eventually datafiles.", detail="Proceed?", icon='warning'):
             return
     #Convert Tk-Integer to normal Integer
-    myChannels = []
+    myChannels = numpy.array([])
     for channel in channels:
-        myChannels.append(channel.get())
-    myCalibrations = []
+        myChannels = numpy.append(myChannels, channel.get())
+    myCalibrations = numpy.array([])
     for calibration in calibrations:
-        myCalibrations.append(calibration.get())
+        myCalibrations = numpy.append(myCalibrations, calibration.get())
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
-        json.dump({'filepath': filepath, 'Channels':list(filter(lambda x : x != 0, myChannels)), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations}, settingsFile)
-    DynaProcess = Process(target=startProcessing, args=(dirpath, 0))
+        json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations[myChannels != 0].tolist()}, settingsFile)
+    DynaProcess = multiprocessing.Process(target=startProcessing, args=(dirpath, 0))
     DynaProcess.start()
     startButton["state"] = "disabled"
     startButton.configure(text="Running...", command=lambda:emptyFunction)
@@ -84,7 +86,11 @@ def emptyFunction():
     return
 
 if __name__ == "__main__":
-    freeze_support()
+    if os.name == 'nt': #First call is needed for releasing. Later one is needed to make it work on Posix systems. They don't work together
+        multiprocessing.freeze_support()
+    else:
+        multiprocessing.set_start_method('spawn', force=True)
+    
     ttk.Label(frm, text="Filepath").grid(column=0, row=2)
     fileField = Entry(frm, validate='key', validatecommand=(frm.register(validateConfig), '%P'))
     fileField.grid(column=1, row=2)
