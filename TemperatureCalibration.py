@@ -5,6 +5,33 @@ from tkinter.filedialog import askopenfilename, askdirectory
 import os
 
 
+def cal_ht1(x):
+    if x < 1:
+        return 999
+    t = 1865.63653 * (np.exp((10.38047 / x) ** 0.345)) - 4498.08702 * x ** (- 0.16021) + 3962.64004
+    if (t > 350) or (t < 0.01):
+        return 400
+    return t
+
+
+def cal_ht2(x):
+    if x < 1:
+        return 999
+    t = 1732.70679 * (np.exp((10.83512 / x) ** 0.345)) - 4690.63976 * x ** (- 0.12138) + 4677.7492
+    if (t > 350) or (t < 0.01):
+        return 400
+    return t
+
+
+def cal_ht3(x):
+    if x < 1:
+        return 999
+    t = 1847.68047 * (np.exp((10.20225 / x) ** 0.345)) - 4618.08315 * x ** (- 0.14122) + 4250.30054
+    if (t > 350) or (t < 0.01):
+        return 400
+    return t
+
+
 def cal_cam_cool(x):
     x = 11.2 - np.log(x - 1400)
     return np.exp(-2.96106634147848 + -5.18089054649127 * x + 25.9564389751936 * x ** 2 - 67.919802323554 * x ** 3 +
