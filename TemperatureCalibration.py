@@ -5,6 +5,10 @@ from tkinter.filedialog import askopenfilename, askdirectory
 import os
 from UliEngineering.Physics.RTD import pt1000_temperature
 
+def cal_III(x):
+    x = 11.2 - np.log(x - 1400)
+    return np.exp( 3.02890855e-04 * x** 14 - 5.75616996e-03 * x**13 + 4.57449826e-02 * x**12 - 1.92476825e-01 * x**11 + 4.29386069e-01 * x**10 - 3.24290943e-01 * x**9 - 7.20758129e-01 * x**8 + 2.13213145e+00 * x**7 - 2.17631225e+00 * x**6 + 7.39243297e-01 * x**5 + 2.53107792e-01 * x**4 - 2.14102245e-01 * x**3 + 2.71741053e-01 * x**2 + 4.06882605e-01 * x -2.88096256e+00 )
+
 def cal_generic_pt1000(x):
     return (cal_pt1000_Ch1_Baffle5(x) + cal_pt1000_Ch2_Baffle4(x)) / 2
 
@@ -17,7 +21,6 @@ def cal_pt1000_Ch2_Baffle4(x):
     if x < 89.58:
         return 7.85391 + 0.451 * x**0.87903 + 4.0281 * np.log(x -7.79381) - 2.19714 * np.tanh(x / (-2.36548*(10*15)) -7.27357*(10**19)) 
     return cal_pt1000(x)
-
 
 def cal_pt1000(r):
     t = pt1000_temperature(r) + 273.15
