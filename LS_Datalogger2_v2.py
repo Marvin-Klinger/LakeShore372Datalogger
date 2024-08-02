@@ -121,7 +121,7 @@ def model372_thermometer_and_sample(thermometer_channel, sample_channel, filenam
     resistance_error_plot = []
 
     plt.ion()
-    fig, axs = plt.subplots(2, 1)
+    fig, axs = plt.subplots(2, 1, sharex=True)
     # User interface:
     # axs[0]: T(t) + ΔT(t)
     # axs[1]: R(T) + ΔR(T)

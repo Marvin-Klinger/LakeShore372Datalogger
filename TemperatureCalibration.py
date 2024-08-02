@@ -3,36 +3,88 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tkinter.filedialog import askopenfilename, askdirectory
 import os
+from UliEngineering.Physics.RTD import pt1000_temperature
 
 
 def cal_ht1(x):
+<<<<<<< HEAD
     if x < 1:
         return 999
     t = 1865.63653 * (np.exp((10.38047 / x) ** 0.345)) - 4498.08702 * x ** (- 0.16021) + 3962.64004
     if (t > 350) or (t < 0.01):
+=======
+    if x < 4600:
+        return 400
+    t = 1.14239E10 * (np.log(-(4427.66529-x)/0.50214) ** (-1/0.1))
+    if t < 1.7 or t > 300:
+>>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
 def cal_ht2(x):
+<<<<<<< HEAD
     if x < 1:
         return 999
     t = 1732.70679 * (np.exp((10.83512 / x) ** 0.345)) - 4690.63976 * x ** (- 0.12138) + 4677.7492
     if (t > 350) or (t < 0.01):
+=======
+    if x < 4600:
+        return 400
+    t = 1.00019E10 * (np.log(-(4393.21183 - x) / 0.56481) ** (-1 / 0.1))
+    if t < 1.7 or t > 300:
+>>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
 def cal_ht3(x):
+<<<<<<< HEAD
     if x < 1:
         return 999
     t = 1847.68047 * (np.exp((10.20225 / x) ** 0.345)) - 4618.08315 * x ** (- 0.14122) + 4250.30054
     if (t > 350) or (t < 0.01):
+=======
+    if x < 4600:
+        return 400
+    t = 1.02639E10 * (np.log(-(4402.71193 - x) / 0.54942) ** (-1 / 0.1))
+    if t < 1.7 or t > 300:
+>>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
+<<<<<<< HEAD
+=======
+def cal_III(x):
+    x = 11.2 - np.log(x - 1400)
+    T = np.exp( 3.02890855e-04 * x** 14 - 5.75616996e-03 * x**13 + 4.57449826e-02 * x**12 - 1.92476825e-01 * x**11 + 4.29386069e-01 * x**10 - 3.24290943e-01 * x**9 - 7.20758129e-01 * x**8 + 2.13213145e+00 * x**7 - 2.17631225e+00 * x**6 + 7.39243297e-01 * x**5 + 2.53107792e-01 * x**4 - 2.14102245e-01 * x**3 + 2.71741053e-01 * x**2 + 4.06882605e-01 * x -2.88096256e+00 )
+    if (T > 2) or (T < 0.01):
+        return 400
+    return T
+def cal_generic_pt1000(x):
+    return (cal_pt1000_Ch1_Baffle5(x) + cal_pt1000_Ch2_Baffle4(x)) / 2
+
+def cal_pt1000_Ch1_Baffle5(x):
+    if x < 105:
+        return 5.74834 + 0.43974 * x**0.88354 + 4.11545 * np.log(x - 10.34234) + 3.42096 * np.tanh(x / (-8.85332*(10**14)) + 3.37344*(10**15))
+    return cal_pt1000(x)
+
+def cal_pt1000_Ch2_Baffle4(x):
+    if x < 89.58:
+        return 7.85391 + 0.451 * x**0.87903 + 4.0281 * np.log(x -7.79381) - 2.19714 * np.tanh(x / (-2.36548*(10*15)) -7.27357*(10**19)) 
+    return cal_pt1000(x)
+
+def cal_pt1000(r):
+    t = pt1000_temperature(r) + 273.15
+    if t < 0:
+        t = 9999
+    return t
+
+>>>>>>> BumpToNewLakeshore
 def cal_cam_cool(x):
+    if x < 1400:
+        return 9999
     x = 11.2 - np.log(x - 1400)
     return np.exp(-2.96106634147848 + -5.18089054649127 * x + 25.9564389751936 * x ** 2 - 67.919802323554 * x ** 3 +
                   117.974122540099 * x ** 4 - 142.685187179576 * x ** 5 + 123.779073338133 * x ** 6 -

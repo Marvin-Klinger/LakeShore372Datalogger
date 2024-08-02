@@ -127,8 +127,34 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+<<<<<<< HEAD
+=======
+/.idea/.gitignore
+/2024-04-10/mx06_07CamCool/2024-04-10-12-38-36ADR_Data_Channel1.csv
+/2024-04-10/mx06_07CamCool/2024-04-10-12-38-36ADR_Data_Channel2.csv
+/2024-04-10/mx06_07CamCool/2024-04-10-12-38-36ADR_Data_Channel3.csv
+/2024-04-10/mx06_07CamCool/2024-04-10-12-50-04ADR_Data_Channel1.csv
+/2024-04-10/mx06_07CamCool/2024-04-10-12-50-04ADR_Data_Channel2.csv
+/2024-04-10/mx06_07CamCool/2024-04-10-12-50-04ADR_Data_Channel3.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-41-32ADR_Data_Channel1.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-41-32ADR_Data_Channel2.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-41-32ADR_Data_Channel3.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-46-27ADR_Data_Channel1.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-46-27ADR_Data_Channel2.csv
+/2024-04-16/deleteme_testing/2024-04-16-09-46-27ADR_Data_Channel3.csv
+/2024-04-18/mx08mx09calibrationADRCAMCOOLKIT/2024-04-18-14-22-43ADR_Data_Channel1.csv
+/2024-04-18/mx08mx09calibrationADRCAMCOOLKIT/2024-04-18-14-22-43ADR_Data_Channel2.csv
+/2024-04-18/mx08mx09calibrationADRCAMCOOLKIT/2024-04-18-14-22-43ADR_Data_Channel3.csv
+/2024-04-22/mx08mx09calibrationADRCAMCOOLKIT_cutWires/2024-04-22-10-04-05ADR_Data_Channel1.csv
+/2024-04-22/mx08mx09calibrationADRCAMCOOLKIT_cutWires/2024-04-22-10-04-05ADR_Data_Channel2.csv
+/2024-04-22/mx08mx09calibrationADRCAMCOOLKIT_cutWires/2024-04-22-10-04-05ADR_Data_Channel3.csv
+/.idea/LakeShore372Datalogger.iml
+>>>>>>> BumpToNewLakeshore
 /.idea/misc.xml
 /.idea/modules.xml
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
+<<<<<<< HEAD
 /.idea/LakeShore372Datalogger.iml
+=======
+>>>>>>> BumpToNewLakeshore
