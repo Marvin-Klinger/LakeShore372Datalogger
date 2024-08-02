@@ -7,55 +7,32 @@ from UliEngineering.Physics.RTD import pt1000_temperature
 
 
 def cal_ht1(x):
-<<<<<<< HEAD
-    if x < 1:
-        return 999
-    t = 1865.63653 * (np.exp((10.38047 / x) ** 0.345)) - 4498.08702 * x ** (- 0.16021) + 3962.64004
-    if (t > 350) or (t < 0.01):
-=======
     if x < 4600:
         return 400
     t = 1.14239E10 * (np.log(-(4427.66529-x)/0.50214) ** (-1/0.1))
     if t < 1.7 or t > 300:
->>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
 def cal_ht2(x):
-<<<<<<< HEAD
-    if x < 1:
-        return 999
-    t = 1732.70679 * (np.exp((10.83512 / x) ** 0.345)) - 4690.63976 * x ** (- 0.12138) + 4677.7492
-    if (t > 350) or (t < 0.01):
-=======
     if x < 4600:
         return 400
     t = 1.00019E10 * (np.log(-(4393.21183 - x) / 0.56481) ** (-1 / 0.1))
     if t < 1.7 or t > 300:
->>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
 def cal_ht3(x):
-<<<<<<< HEAD
-    if x < 1:
-        return 999
-    t = 1847.68047 * (np.exp((10.20225 / x) ** 0.345)) - 4618.08315 * x ** (- 0.14122) + 4250.30054
-    if (t > 350) or (t < 0.01):
-=======
     if x < 4600:
         return 400
     t = 1.02639E10 * (np.log(-(4402.71193 - x) / 0.54942) ** (-1 / 0.1))
     if t < 1.7 or t > 300:
->>>>>>> BumpToNewLakeshore
         return 400
     return t
 
 
-<<<<<<< HEAD
-=======
 def cal_III(x):
     x = 11.2 - np.log(x - 1400)
     T = np.exp( 3.02890855e-04 * x** 14 - 5.75616996e-03 * x**13 + 4.57449826e-02 * x**12 - 1.92476825e-01 * x**11 + 4.29386069e-01 * x**10 - 3.24290943e-01 * x**9 - 7.20758129e-01 * x**8 + 2.13213145e+00 * x**7 - 2.17631225e+00 * x**6 + 7.39243297e-01 * x**5 + 2.53107792e-01 * x**4 - 2.14102245e-01 * x**3 + 2.71741053e-01 * x**2 + 4.06882605e-01 * x -2.88096256e+00 )
@@ -81,7 +58,6 @@ def cal_pt1000(r):
         t = 9999
     return t
 
->>>>>>> BumpToNewLakeshore
 def cal_cam_cool(x):
     if x < 1400:
         return 9999
@@ -224,3 +200,4 @@ if __name__ == "__main__":
 
 #calibrate_all_files_in_dir(6)
 #show_plot()
+
