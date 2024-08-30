@@ -5,7 +5,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from TemperatureCalibration import cal_mk8 as cal_mk4
+#from TemperatureCalibration import cal_mk8 as cal_mk4
 
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):

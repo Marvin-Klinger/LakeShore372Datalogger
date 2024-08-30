@@ -6,6 +6,7 @@ from lakeshore import Model372, Model372InputSetupSettings
 import time
 import logging
 from os import makedirs
+import os
 import sys
 import json
 from datetime import datetime
@@ -117,20 +118,30 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
+       
         try:
             temperature_func = getattr(TemperatureCalibration, temperature_calibrations[channel_index - 1])
-        except AttributeError:
-            temperature_func = lambda x : -2
-        temperature = temperature_func(resistance_thermometer)
-        temperature_plot[channel_index].append(temperature)
+            temperature = temperature_func(resistance_thermometer)
+        except:
+            temperature = None
+        if(temperature is None):
+            temperature_func = ''
+            temperature_error = ''
+            temperature_plot[channel_index].append(np.nan)
+            temperature_error_plot[channel_index].append(np.nan)
+        else:
+            temperature_plot[channel_index].append(temperature)
 
-        # calculate temperature error
-        temperature_upper = temperature_func(resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = temperature_func(resistance_thermometer + resistance_thermometer_err)
-        # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
-        temperature_error = (temperature_upper - temperature_lower) / 2
-        temperature_error = np.absolute(temperature_error)
-        temperature_error_plot[channel_index].append(temperature_error)
+            # calculate temperature error
+            temperature_upper = temperature_func(resistance_thermometer - resistance_thermometer_err)
+            temperature_lower = temperature_func(resistance_thermometer + resistance_thermometer_err)
+            # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+            try:
+                temperature_error = (temperature_upper - temperature_lower) / 2
+            except:
+                temperature_error = np.nan
+            temperature_error = np.absolute(temperature_error)
+            temperature_error_plot[channel_index].append(temperature_error)
 
         time_plot[channel_index].append(time_thermometer)
         time_error_plot[channel_index].append(time_thermometer_err)  # this might be too large, about 2s
@@ -177,14 +188,14 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
                     axs[1].scatter(time_plot[channel], temperature_plot[channel], label=f"Ch {channel}")
 
                 for channel in channels:
-                        axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
+                    axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
 
                 axs[0].set_xlabel('Elapsed time [s]')
                 axs[0].set_ylabel('Resistance [Ohm]')
                 axs[1].set_ylabel('Calibrated temperature [K]')
                 axs[1].set_yscale('log')
 
-                axs[0].set_title("title")
+                axs[0].set_title(os.path.dirname(os.path.realpath(".")))
 
                 # axs[0].set_data(time_plot, resistance_plot)
                 # axs[1].set_data(time_plot, temperature_plot)
