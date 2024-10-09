@@ -75,7 +75,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     resistance_error_plot = [[] for _ in range(17)]
 
     plt.ion()
-    fig, axs = plt.subplots(2, 1)
+    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
     fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
 
     axs[0].set_ylabel('Resistance [Ohm]')
@@ -190,8 +190,9 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
                 for channel in channels:
                     axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
 
-                axs[0].set_xlabel('Elapsed time [s]')
+                #axs[0].set_xlabel('Elapsed time [s]')
                 axs[0].set_ylabel('Resistance [Ohm]')
+                axs[1].set_xlabel('Elapsed time [s]')
                 axs[1].set_ylabel('Calibrated temperature [K]')
                 axs[1].set_yscale('log')
 
