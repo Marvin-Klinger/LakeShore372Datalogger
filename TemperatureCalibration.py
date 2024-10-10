@@ -7,9 +7,9 @@ from UliEngineering.Physics.RTD import pt1000_temperature
 
 def cal_RX202A(x):
     if x < 2656:
-        return 300
+        return np.nan
     if x > 236751:
-        return 300
+        return np.nan
     x = 11.2 - np.log(x - 1400)
     t = np.exp(- 3.1811288786136
                + 0.553973809709068 * x
@@ -31,9 +31,9 @@ def cal_RX202A(x):
 
 def cal_III(resistance):
     if resistance > 87682:
-        return 300
+        return np.nan
     if resistance < 3983:
-        return 300
+        return np.nan
     x = 11.2 - np.log(resistance - 1400)
     t = np.exp( - 3.1448117287367
                 + 0.982326537212055 * x
@@ -54,28 +54,28 @@ def cal_III(resistance):
 
 def cal_ht1(x):
     if x < 4600:
-        return 400
+        return np.nan
     t = 1.14239E10 * (np.log(-(4427.66529 - x) / 0.50214) ** (-1 / 0.1))
     if t < 1.7 or t > 300:
-        return 400
+        return np.nan
     return t
 
 
 def cal_ht2(x):
     if x < 4600:
-        return 400
+        return np.nan
     t = 1.00019E10 * (np.log(-(4393.21183 - x) / 0.56481) ** (-1 / 0.1))
     if t < 1.7 or t > 300:
-        return 400
+        return np.nan
     return t
 
 
 def cal_ht3(x):
     if x < 4600:
-        return 400
+        return np.nan
     t = 1.02639E10 * (np.log(-(4402.71193 - x) / 0.54942) ** (-1 / 0.1))
     if t < 1.7 or t > 300:
-        return 400
+        return np.nan
     return t
 
 
@@ -108,8 +108,8 @@ def cal_cam_cool(x):
                   78.2257644232516 * x ** 7 + 36.217633977666 * x ** 8 + -12.2416617747187 * x ** 9 +
                   2.97848537774922 * x ** 10 - 0.506678458162558 * x ** 11 + 0.0570440155878966 * x ** 12 +
                   -0.00380768004287375 * x ** 13 + 1.13699100097316E-4 * x ** 14)
-    if(T == np.nan or T < 0.3):
-        return None
+    if(T < 0.3):
+        return np.nan
     return T
 
 def cal_ser8(x):

@@ -3,7 +3,7 @@ import time
 import pandas
 from datetime import datetime
 import numpy as np
-
+import random
 
 def acquire_samples_debug(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None):
     if channel_settings is not None:
@@ -25,9 +25,8 @@ def acquire_samples_debug(model372, number_of_samples, channel_number, time_at_s
     for _ in range(number_of_samples):
         current_timestamp = datetime.now()
         timedelta = current_timestamp - time_at_startup
-
         readings = {
-            "resistance": _ * rng.random()*1000 + 6000,
+            "resistance": _ * rng.random() * 1000 + 6000,
             "quadrature": _ * rng.random() * 10 + 60,
             "power": _ * rng.random() * 1E-6 + 6E-6,
         }

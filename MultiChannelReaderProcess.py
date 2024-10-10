@@ -119,30 +119,14 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
         # calculate the temperature during the resistivity measurement
        
-        try:
-            temperature_func = getattr(TemperatureCalibration, temperature_calibrations[channel_index - 1])
-            temperature = temperature_func(resistance_thermometer)
-        except:
-            temperature = None
-        if(temperature is None):
-            temperature_func = ''
-            temperature_error = ''
-            temperature_plot[channel_index].append(np.nan)
-            temperature_error_plot[channel_index].append(np.nan)
-        else:
-            temperature_plot[channel_index].append(temperature)
-
-            # calculate temperature error
-            temperature_upper = temperature_func(resistance_thermometer - resistance_thermometer_err)
-            temperature_lower = temperature_func(resistance_thermometer + resistance_thermometer_err)
-            # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
-            try:
-                temperature_error = (temperature_upper - temperature_lower) / 2
-            except:
-                temperature_error = np.nan
-            temperature_error = np.absolute(temperature_error)
-            temperature_error_plot[channel_index].append(temperature_error)
-
+        temperature = temperature_calibrations[channel_index - 1](resistance_thermometer)
+        temperature_upper = temperature_calibrations[channel_index - 1](resistance_thermometer - resistance_thermometer_err)
+        temperature_lower = temperature_calibrations[channel_index - 1](resistance_thermometer + resistance_thermometer_err)
+        
+        # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
+        temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
+        temperature_plot[channel_index].append(temperature)
+        temperature_error_plot[channel_index].append(temperature_error)
         time_plot[channel_index].append(time_thermometer)
         time_error_plot[channel_index].append(time_thermometer_err)  # this might be too large, about 2s
         resistance_plot[channel_index].append(resistance_thermometer)
@@ -253,6 +237,8 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
     visualizer.start()  # Launch reader_p() as another proc
     return visualizer
 
+def nullFunction(x):
+    return np.nan
 
 def main(path):
     """Use these options to configure the measurement"""
@@ -264,7 +250,13 @@ def main(path):
     _lakeshore_channels = settingsJSON["Channels"]
     _debug=settingsJSON["debug"]
     _measurements_per_scan = settingsJSON["samplerate"]
-    _temperature_calibrations = settingsJSON["calibration"]
+    
+    _temperature_calibrations = []
+    for calString in settingsJSON["calibration"]:
+        if calString == "None":
+            _temperature_calibrations.append(nullFunction)
+        else:
+            _temperature_calibrations.append(getattr(TemperatureCalibration, calString))
 
     time_at_beginning_of_experiment = datetime.now()
     # used to transport data from the reader process to the visualizer
