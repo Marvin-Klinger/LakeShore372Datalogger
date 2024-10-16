@@ -13,7 +13,6 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import TemperatureCalibration
 
-
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
 
@@ -61,19 +60,13 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
+    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
     loggers = [[] for _ in range(17)]
     for channel in channels:
         _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filepath)
         loggers[channel] = _lgr
 
 #TODO: this creates many potentially empty lists that will never be filled
-    time_plot = [[] for _ in range(17)]
-    time_error_plot = [[] for _ in range(17)]
-    temperature_plot = [[] for _ in range(17)]
-    temperature_error_plot = [[] for _ in range(17)]
-    resistance_plot = [[] for _ in range(17)]
-    resistance_error_plot = [[] for _ in range(17)]
-
     plt.ion()
     fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
     fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
@@ -82,14 +75,17 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[0].set_title("Waiting for Data")
     axs[1].set_ylabel('Calibrated temperature [K]')
     axs[1].set_yscale('log')
-    axs[1].set_ylim(0.01, 10)
+    #axs[1].set_ylim(0.01, 10)
     axs[1].set_xlabel('Time [s]')
 
+    axs[0].set_title(os.path.basename(os.getcwd()))
+   
+    scatter=[]
     for i in channels:
-        #i -= 1
-        #no longer necessary, increased list length by 1
-        axs[0].errorbar(time_plot[i], resistance_plot[i], yerr=resistance_error_plot[i], fmt='o')
-        axs[1].errorbar(time_plot[i], temperature_plot[i], yerr=temperature_error_plot[i], fmt='o')
+        scatter.append(axs[0].scatter([], [], color=colors[i-1], linestyle='', marker='o', label=f"Ch {i}"))
+    axs[0].legend()
+    for i in scatter:
+        i.remove()
 
     while True:
         if thread_stop_indicator.value:
@@ -125,12 +121,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         
         # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
-        temperature_plot[channel_index].append(temperature)
-        temperature_error_plot[channel_index].append(temperature_error)
-        time_plot[channel_index].append(time_thermometer)
-        time_error_plot[channel_index].append(time_thermometer_err)  # this might be too large, about 2s
-        resistance_plot[channel_index].append(resistance_thermometer)
-        resistance_error_plot[channel_index].append(resistance_thermometer_err)
 
         loggers[channel_index].info(
             str(datetime.now()) + delimiter +
@@ -144,20 +134,17 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(quadrature_thermometer_err) + delimiter +
             str(power_thermometer) + delimiter +
             str(power_thermometer_err))
+        
+        axs[0].scatter(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
+        axs[1].scatter(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
 
         if queue.qsize() > 5:
             """
             Last resort. More than 5 recent measurements were not processed due to long redraw time.
-            Now the older half of the plot will be dropped. This does not affect any saved data.
+            Clear interface
             """
-            for channel in channels:
-                time_plot[channel] = time_plot[channel][len(time_plot)//2:]
-                time_error_plot[channel] = time_error_plot[channel][len(time_error_plot)//2:]
-                resistance_plot[channel] = resistance_plot[channel][len(resistance_plot)//2:]
-                resistance_error_plot[channel] = resistance_error_plot[channel][len(resistance_error_plot)//2:]
-                temperature_plot[channel] = temperature_plot[channel][len(temperature_plot)//2:]
-                temperature_error_plot[channel] = temperature_error_plot[channel][len(temperature_error_plot)//2:]
-
+            axs[0].clear()
+            axs[1].clear()
         """
         Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
         getting to long. 
@@ -165,32 +152,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         #TODO: for all time series
         if fig.canvas.toolbar.mode == '':
             if queue.qsize() < 2:
-                axs[0].clear()
-                axs[1].clear()
-
-                for channel in channels:
-                    axs[1].scatter(time_plot[channel], temperature_plot[channel], label=f"Ch {channel}")
-
-                for channel in channels:
-                    axs[0].scatter(time_plot[channel], resistance_plot[channel], label=f"Ch {channel}")
-
-                #axs[0].set_xlabel('Elapsed time [s]')
-                axs[0].set_ylabel('Resistance [Ohm]')
-                axs[1].set_xlabel('Elapsed time [s]')
-                axs[1].set_ylabel('Calibrated temperature [K]')
-                axs[1].set_yscale('log')
-
-                axs[0].set_title(os.path.dirname(os.path.realpath(".")))
-
-                # axs[0].set_data(time_plot, resistance_plot)
-                # axs[1].set_data(time_plot, temperature_plot)
-                # axs[0].errorbar(time_plot, resistance_plot, yerr=resistance_error_plot, fmt='o')
-                # axs[1].errorbar(time_plot, temperature_plot, yerr=temperature_error_plot, fmt='o')
-                # draw the T(t) plot (for new thermometers this will be wildly inaccurate)
-                # draw the new information for the user
-                
                 fig.canvas.draw()
-                axs[0].legend()
                 fig.canvas.flush_events()
 
 
