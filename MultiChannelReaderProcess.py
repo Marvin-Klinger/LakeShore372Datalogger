@@ -87,13 +87,14 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     for i in scatter:
         i.remove()
 
+    #fig.canvas.draw()
+    #fig.canvas.flush_events()
     while True:
         if thread_stop_indicator.value:
             break
-
         # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
-            fig.canvas.draw()
+            #fig.canvas.draw()
             fig.canvas.flush_events()
             time.sleep(0.05)
             continue
@@ -135,8 +136,8 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(power_thermometer) + delimiter +
             str(power_thermometer_err))
         
-        axs[0].scatter(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
-        axs[1].scatter(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
+        axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
+        axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
 
         if queue.qsize() > 5:
             """
@@ -150,10 +151,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         getting to long. 
         """
         #TODO: for all time series
-        if fig.canvas.toolbar.mode == '':
-            if queue.qsize() < 2:
-                fig.canvas.draw()
-                fig.canvas.flush_events()
+        #if fig.canvas.toolbar.mode == '':
+        #    if queue.qsize() < 2:
+        #        fig.canvas.draw()
+        #        fig.canvas.flush_events()
 
 
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
