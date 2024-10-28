@@ -89,6 +89,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     #fig.canvas.draw()
     #fig.canvas.flush_events()
+    wasZoomed = False
     while True:
         if thread_stop_indicator.value:
             break
@@ -138,7 +139,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         
         axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
         axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
-
         if queue.qsize() > 5:
             """
             Last resort. More than 5 recent measurements were not processed due to long redraw time.
@@ -151,10 +151,15 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         getting to long. 
         """
         #TODO: for all time series
-        #if fig.canvas.toolbar.mode == '':
-        #    if queue.qsize() < 2:
-        #        fig.canvas.draw()
-        #        fig.canvas.flush_events()
+        if fig.canvas.toolbar.mode == '':
+            if wasZoomed:
+                axs[0].autoscale()
+                wasZoomed = False
+            #if queue.qsize() < 2:
+            #    fig.canvas.draw()
+            #    fig.canvas.flush_events()
+        else:
+            wasZoomed = True
 
 
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
@@ -183,7 +188,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                 break
     else:
         while True:
-            time.sleep(2)
+            time.sleep(0.1)
             for channel in channels:
                 sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
                 print(queue.qsize())
