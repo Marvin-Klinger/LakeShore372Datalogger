@@ -7,6 +7,7 @@ import time
 import TemperatureCalibration
 import MultiChannelReaderProcess
 import numpy
+import MultiPyVu as mpv
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -66,8 +67,10 @@ def writeSettings(dirpath):
     #Write settings to json
     with open(f"{dirpath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations.tolist()}, settingsFile)
+
     DynaProcess = multiprocessing.Process(target=startProcessing, args=(dirpath, 0))
     DynaProcess.start()
+
     startButton["state"] = "disabled"
     startButton.configure(text="Running...", command=lambda:emptyFunction)
     while(DynaProcess.is_alive()):
@@ -78,7 +81,8 @@ def writeSettings(dirpath):
     return
 
 def startProcessing(dirpath, i):
-    MultiChannelReaderProcess.main(dirpath)
+    with mpv.Server():
+        MultiChannelReaderProcess.main(dirpath)
     return
 
 def emptyFunction():

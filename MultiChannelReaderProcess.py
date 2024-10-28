@@ -12,6 +12,7 @@ import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 import TemperatureCalibration
+import MultiPyVu as mpv
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -41,7 +42,8 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
         "Quadrature_thermometer" + delimiter +
         "Quadrature_thermometer_error" + delimiter +
         "Power_thermometer" + delimiter +
-        "Power_thermometer_error"
+        "Power_thermometer_error" + delimiter +
+        "Field_PPMS"
     )
     lgr.info(
         "[YYYY-MM-DD hh:mm:ss.###]" + delimiter +
@@ -54,7 +56,8 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
         "iOhm" + delimiter +
         "iOhm" + delimiter +
         "Watt" + delimiter +
-        "Watt"
+        "Watt" + delimiter +
+        "Oe"
     )
     return lgr
 
@@ -89,8 +92,12 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     #fig.canvas.draw()
     #fig.canvas.flush_events()
+    mpvClient = mpv.Client()
+    mpvClient.open()
     while True:
         if thread_stop_indicator.value:
+            mpvClient.close_client()
+            mpvClient.close_server()
             break
         # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
@@ -115,14 +122,19 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         time_thermometer_err = sample_data["Elapsed time"].std()
 
         # calculate the temperature during the resistivity measurement
-       
+
         temperature = temperature_calibrations[channel_index - 1](resistance_thermometer)
         temperature_upper = temperature_calibrations[channel_index - 1](resistance_thermometer - resistance_thermometer_err)
         temperature_lower = temperature_calibrations[channel_index - 1](resistance_thermometer + resistance_thermometer_err)
-        
+
         # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
 
+        #with mpv.Client(socket_timeout=None) as mpvClient:
+        try:
+            field, field_status = mpvClient.get_field()
+        except:
+            field = np.nan
         loggers[channel_index].info(
             str(datetime.now()) + delimiter +
             str(time_thermometer) + delimiter +
@@ -134,10 +146,12 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             str(quadrature_thermometer) + delimiter +
             str(quadrature_thermometer_err) + delimiter +
             str(power_thermometer) + delimiter +
-            str(power_thermometer_err))
-        
+            str(power_thermometer_err) + delimiter +
+            str(field))
+
         axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
         axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
+        axs[0].plot(time_thermometer, field, color=colors[channel_index-1], linestyle='--', marker='.')
 
         if queue.qsize() > 5:
             """
