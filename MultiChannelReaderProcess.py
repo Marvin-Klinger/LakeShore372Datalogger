@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value
 import numpy as np
-from LS_Datalogger2_v2 import acquire_samples
-from emulator import acquire_samples_debug
+from LS_Datalogger2_v2 import acquire_samples, acquire_samples_ppms
+from emulator import acquire_samples_debug, acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
 import time
 import logging
@@ -43,7 +43,10 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
         "Quadrature_thermometer_error" + delimiter +
         "Power_thermometer" + delimiter +
         "Power_thermometer_error" + delimiter +
-        "Field_PPMS"
+        "Field_PPMS" + delimiter +
+        "Field_PPMS_error" + delimiter +
+        "Temperature_PPMS" + delimiter +
+        "Temperature_PPMS_error"
     )
     lgr.info(
         "[YYYY-MM-DD hh:mm:ss.###]" + delimiter +
@@ -57,7 +60,10 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
         "iOhm" + delimiter +
         "Watt" + delimiter +
         "Watt" + delimiter +
-        "Oe"
+        "Oe" + delimiter +
+        "Oe" + delimiter +
+        "Kelvin" + delimiter +
+        "Kelvin"
     )
     return lgr
 
@@ -66,12 +72,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
 
     wasZoomed = False
-    mpvClient = mpv.Client()
-
-    try:
-        mpvClient.open()
-    except:
-        print("Could not connect to PPMS")
 
     loggers = [[] for _ in range(17)]
     for channel in channels:
@@ -107,8 +107,6 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     while True:
         if thread_stop_indicator.value:
-            mpvClient.close_client()
-            mpvClient.close_server()
             break
         # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
@@ -127,11 +125,15 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         quadrature_thermometer = sample_data["iR"].mean()
         power_thermometer = sample_data["P"].mean()
         time_thermometer = sample_data["Elapsed time"].mean()
+        temperature_ppms = sample_data["PPMS_T"].mean()
+        field_ppms = sample_data["PPMS_B"].mean()
+
         resistance_thermometer_err = sample_data["R"].std()
         quadrature_thermometer_err = sample_data["iR"].std()
         power_thermometer_err = sample_data["P"].std()
         time_thermometer_err = sample_data["Elapsed time"].std()
-
+        temperature_ppms_err = sample_data["PPMS_T"].std()
+        field_ppms_err = sample_data["PPMS_B"].std()
         # calculate the temperature during the resistivity measurement
 
         temperature = temperature_calibrations[channel_index - 1](resistance_thermometer)
@@ -141,17 +143,12 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
         temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
 
-        #with mpv.Client(socket_timeout=None) as mpvClient:
-        try:
-            field, field_status = mpvClient.get_field()
-        except:
-            field = np.nan
-
         logline = str(datetime.now()) + delimiter + str(time_thermometer) + delimiter + str(
             time_thermometer_err) + delimiter + str(temperature) + delimiter + str(temperature_error) + delimiter + str(
             resistance_thermometer) + delimiter + str(resistance_thermometer_err) + delimiter + str(
             quadrature_thermometer) + delimiter + str(quadrature_thermometer_err) + delimiter + str(
-            power_thermometer) + delimiter + str(power_thermometer_err) + delimiter + str(field)
+            power_thermometer) + delimiter + str(power_thermometer_err) + delimiter + str(field_ppms) + delimiter + str(
+            field_ppms_err) + delimiter + str(temperature_ppms) + delimiter + str(temperature_ppms_err)
 
         loggers[channel_index].info(logline)
 
@@ -185,6 +182,13 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                         ip_address="192.168.0.12", thread_stop_indicator=Value('b', False),
                         debug=False):
     """"""
+    mpv_client = mpv.Client()
+
+    try:
+        mpv_client.open()
+    except:
+        print("Could not connect to PPMS")
+
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
         if configure_input:
@@ -200,19 +204,24 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
             for channel in channels:
                 instrument_372.set_scanner_status(input_channel=channel, status=False)
                 time.sleep(4)
-                sample_data = acquire_samples(instrument_372, measurements_per_scan, channel,
-                                              _time_at_beginning_of_experiment)
+                sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
+                                              _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                 queue.put((channel, sample_data))
             if thread_stop_indicator.value:
+                mpv_client.close_client()
+                mpv_client.close_server()
                 break
     else:
         while True:
-            time.sleep(0.1)
+            time.sleep(1)
             for channel in channels:
-                sample_data = acquire_samples_debug(False, measurements_per_scan, channel, _time_at_beginning_of_experiment)
+                sample_data = acquire_samples_debug_ppms(False, measurements_per_scan, channel, _time_at_beginning_of_experiment, _mpv_client = mpv_client)
                 print(queue.qsize())
                 queue.put((channel, sample_data))
+
             if thread_stop_indicator.value:
+                mpv_client.close_client()
+                mpv_client.close_server()
                 break
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',',
