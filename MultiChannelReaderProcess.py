@@ -64,9 +64,20 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
     colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+
+    wasZoomed = False
+    mpvClient = mpv.Client()
+
+    try:
+        mpvClient.open()
+    except:
+        print("Could not connect to PPMS")
+
     loggers = [[] for _ in range(17)]
     for channel in channels:
         _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filepath)
+        _lgr.disabled = False
+        _lgr.propagate = False
         loggers[channel] = _lgr
 
 #TODO: this creates many potentially empty lists that will never be filled
@@ -92,9 +103,8 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     #fig.canvas.draw()
     #fig.canvas.flush_events()
-    wasZoomed = False
-    mpvClient = mpv.Client()
-    mpvClient.open()
+
+
     while True:
         if thread_stop_indicator.value:
             mpvClient.close_client()
@@ -136,19 +146,14 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             field, field_status = mpvClient.get_field()
         except:
             field = np.nan
-        loggers[channel_index].info(
-            str(datetime.now()) + delimiter +
-            str(time_thermometer) + delimiter +
-            str(time_thermometer_err) + delimiter +
-            str(temperature) + delimiter +
-            str(temperature_error) + delimiter +
-            str(resistance_thermometer) + delimiter +
-            str(resistance_thermometer_err) + delimiter +
-            str(quadrature_thermometer) + delimiter +
-            str(quadrature_thermometer_err) + delimiter +
-            str(power_thermometer) + delimiter +
-            str(power_thermometer_err) + delimiter +
-            str(field))
+
+        logline = str(datetime.now()) + delimiter + str(time_thermometer) + delimiter + str(
+            time_thermometer_err) + delimiter + str(temperature) + delimiter + str(temperature_error) + delimiter + str(
+            resistance_thermometer) + delimiter + str(resistance_thermometer_err) + delimiter + str(
+            quadrature_thermometer) + delimiter + str(quadrature_thermometer_err) + delimiter + str(
+            power_thermometer) + delimiter + str(power_thermometer_err) + delimiter + str(field)
+
+        loggers[channel_index].info(logline)
 
         axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
         axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
