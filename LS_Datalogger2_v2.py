@@ -5,6 +5,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import MultiPyVu as mpv
 #from TemperatureCalibration import cal_mk8 as cal_mk4
 
 
@@ -54,6 +55,39 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
         data = pandas.concat([data, series_for_concat], ignore_index=True)
     return data
 
+
+def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None, _mpv_client = mpv.Client()):
+
+    if channel_settings is not None:
+        model372.configure_input(channel_number, channel_settings)
+
+    # data = pandas.DataFrame(columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
+
+    current_timestamp = datetime.now()
+    timedelta = current_timestamp - time_at_startup
+
+    readings = model372.get_all_input_readings(channel_number)
+    field, field_status = _mpv_client.get_field()
+    temp, temp_status = _mpv_client.get_temperature()
+
+    data = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
+                            readings['quadrature'], readings['power'], field, temp]],
+                            columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B","PPMS_T"])
+
+    for _ in range(number_of_samples - 1):
+        current_timestamp = datetime.now()
+        timedelta = current_timestamp - time_at_startup
+
+        readings = model372.get_all_input_readings(channel_number)
+        field, field_status = _mpv_client.get_field()
+        temp, temp_status = _mpv_client.get_temperature()
+
+        series_for_concat = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
+                                               readings['quadrature'], readings['power'], field, temp]],
+                                             columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B","PPMS_T"])
+
+        data = pandas.concat([data, series_for_concat], ignore_index=True)
+    return data
 
 #def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
 #                                    configure_inputs=False, delimiter=',', ip_address="192.168.0.12",
