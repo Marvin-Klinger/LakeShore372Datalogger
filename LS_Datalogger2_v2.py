@@ -67,8 +67,14 @@ def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_st
     timedelta = current_timestamp - time_at_startup
 
     readings = model372.get_all_input_readings(channel_number)
-    field, field_status = _mpv_client.get_field()
-    temp, temp_status = _mpv_client.get_temperature()
+    try:
+        field, field_status = _mpv_client.get_field()
+    except:
+        field = field_status = np.nan
+    try:
+        temp, temp_status = _mpv_client.get_temperature()
+    except:
+        temp = temp_status = np.nan
 
     data = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
                             readings['quadrature'], readings['power'], field, temp]],
