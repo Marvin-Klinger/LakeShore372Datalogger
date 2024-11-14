@@ -170,6 +170,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         if fig.canvas.toolbar.mode == '':
             if wasZoomed:
                 axs[0].autoscale()
+                axs[1].autoscale()
                 wasZoomed = False
             #if queue.qsize() < 2:
             #    fig.canvas.draw()
