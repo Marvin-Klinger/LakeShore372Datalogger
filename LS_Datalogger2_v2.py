@@ -5,9 +5,9 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import MultiPyVu as mpv
+#import MultiPyVu as mpv
 #from TemperatureCalibration import cal_mk8 as cal_mk4
-
+mpv = "h"
 
 def get_resistance_channel(channel_number, number_of_samples=10, time_at_startup=datetime.now()):
     with Model372(baud_rate=None, ip_address="192.168.0.12") as model372:
@@ -56,7 +56,7 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
     return data
 
 
-def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None, _mpv_client = mpv.Client()):
+def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None, _mpv_client = mpv):#.Client()):
 
     if channel_settings is not None:
         model372.configure_input(channel_number, channel_settings)

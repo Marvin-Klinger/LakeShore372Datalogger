@@ -12,7 +12,7 @@ import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 import TemperatureCalibration
-import MultiPyVu as mpv
+#import MultiPyVu as mpv
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -69,7 +69,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
-    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+    #colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
 
     wasZoomed = False
 
@@ -81,37 +81,37 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         loggers[channel] = _lgr
 
 #TODO: this creates many potentially empty lists that will never be filled
-    plt.ion()
-    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
-    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
-
-    axs[0].set_ylabel('Resistance [Ohm]')
-    axs[0].set_title("Waiting for Data")
-    axs[1].set_ylabel('Calibrated temperature [K]')
-    axs[1].set_yscale('log')
-    #axs[1].set_ylim(0.01, 10)
-    axs[1].set_xlabel('Time [s]')
-
-    axs[0].set_title(os.path.basename(os.getcwd()))
-   
-    scatter=[]
-    for i in channels:
-        scatter.append(axs[0].scatter([], [], color=colors[i-1], linestyle='', marker='o', label=f"Ch {i}"))
-    axs[0].legend()
-    for i in scatter:
-        i.remove()
+#    plt.ion()
+#    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
+#    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
+#
+#    axs[0].set_ylabel('Resistance [Ohm]')
+#    axs[0].set_title("Waiting for Data")
+#    axs[1].set_ylabel('Calibrated temperature [K]')
+#    axs[1].set_yscale('log')
+#    #axs[1].set_ylim(0.01, 10)
+#    axs[1].set_xlabel('Time [s]')
+#
+#    axs[0].set_title(os.path.basename(os.getcwd()))
+#   
+#    scatter=[]
+#    for i in channels:
+#        scatter.append(axs[0].scatter([], [], color=colors[i-1], linestyle='', marker='o', label=f"Ch {i}"))
+#    axs[0].legend()
+#    for i in scatter:
+#        i.remove()
 
     #fig.canvas.draw()
     #fig.canvas.flush_events()
 
 
     while True:
-        if thread_stop_indicator.value:
-            break
+#        if thread_stop_indicator.value:
+#            break
         # redraw the plot to keep the UI going if there is no new data
         if queue.qsize() == 0:
             #fig.canvas.draw()
-            fig.canvas.flush_events()
+#            fig.canvas.flush_events()
             time.sleep(0.05)
             continue
 
@@ -152,43 +152,43 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
         loggers[channel_index].info(logline)
 
-        axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
-        axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
+#        axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
+#        axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
         
-        if queue.qsize() > 5:
-            """
-            Last resort. More than 5 recent measurements were not processed due to long redraw time.
-            Clear interface
-            """
-            axs[0].clear()
-            axs[1].clear()
-        """
-        Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
-        getting to long. 
-        """
-        #TODO: for all time series
-        if fig.canvas.toolbar.mode == '':
-            if wasZoomed:
-                axs[0].autoscale()
-                wasZoomed = False
-            #if queue.qsize() < 2:
-            #    fig.canvas.draw()
-            #    fig.canvas.flush_events()
-        else:
-            wasZoomed = True
+#        if queue.qsize() > 5:
+#            """
+#            Last resort. More than 5 recent measurements were not processed due to long redraw time.
+#            Clear interface
+#            """
+#            axs[0].clear()
+#            axs[1].clear()
+#        """
+#        Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
+#        getting to long. 
+#        """
+#        #TODO: for all time series
+#        if fig.canvas.toolbar.mode == '':
+#            if wasZoomed:
+#                axs[0].autoscale()
+#                wasZoomed = False
+#            #if queue.qsize() < 2:
+#            #    fig.canvas.draw()
+#            #    fig.canvas.flush_events()
+#        else:
+#            wasZoomed = True
 
 
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
                         ip_address="192.168.0.12", thread_stop_indicator=Value('b', False),
                         debug=False):
     """"""
-    mpv_client = mpv.Client()
+    #mpv_client = mpv.Client()
 
-    try:
-        mpv_client.open()
-    except:
-        print("Could not connect to PPMS")
-
+    #try:
+    #    mpv_client.open()
+    #except:
+    #    print("Could not connect to PPMS")
+    mpv_client = 1
     if not debug:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
         if configure_input:
@@ -207,10 +207,10 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                 sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
                                               _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                 queue.put((channel, sample_data))
-            if thread_stop_indicator.value:
-                mpv_client.close_client()
-                mpv_client.close_server()
-                break
+            #if thread_stop_indicator.value:
+                #mpv_client.close_client()
+                #mpv_client.close_server()
+                #break
     else:
         while True:
             time.sleep(1)
@@ -219,10 +219,10 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                 print(queue.qsize())
                 queue.put((channel, sample_data))
 
-            if thread_stop_indicator.value:
-                mpv_client.close_client()
-                mpv_client.close_server()
-                break
+            #if thread_stop_indicator.value:
+            #    mpv_client.close_client()
+            #    mpv_client.close_server()
+            #    break
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',',
                           save_raw_data=True,
