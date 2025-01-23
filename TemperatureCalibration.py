@@ -105,9 +105,9 @@ def cal_VIII(resistance):
     return t
 
 def cal_XII(resistance):
-    if resistance > 99212:
+    if resistance > 99212: #this is dangerous, the thermometer is not well calibrated below 30 mK (80kOhm)
         return np.nan
-    if resistance < 2187:
+    if resistance < 2500:
         return np.nan
     x = 11.2 - np.log(resistance - 1400)
     t = np.exp(

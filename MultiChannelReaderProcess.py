@@ -11,6 +11,7 @@ import sys
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
+import matplotlib.style as mplstyle
 import TemperatureCalibration
 import MultiPyVu as mpv
 
@@ -84,6 +85,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     plt.ion()
     fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
     fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
+    mplstyle.use('fast')
 
     axs[0].set_ylabel('Resistance [Ohm]')
     axs[0].set_title("Waiting for Data")
@@ -97,7 +99,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     scatter=[]
     for i in channels:
         scatter.append(axs[0].scatter([], [], color=colors[i-1], linestyle='', marker='o', label=f"Ch {i}"))
-    axs[0].legend()
+    axs[0].legend(loc='lower right')
     for i in scatter:
         i.remove()
 
@@ -201,17 +203,30 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
             for channel in channels:
                 instrument_372.configure_input(channel, settings_thermometer)
 
-        while True:
-            for channel in channels:
-                instrument_372.set_scanner_status(input_channel=channel, status=False)
-                time.sleep(4)
+        if len(channels) == 1:
+            channel = channels[0]
+            instrument_372.set_scanner_status(input_channel=channel, status=False)
+            time.sleep(4)
+            while True:
                 sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
                                               _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                 queue.put((channel, sample_data))
-            if thread_stop_indicator.value:
-                mpv_client.close_client()
-                mpv_client.close_server()
-                break
+                if thread_stop_indicator.value:
+                    mpv_client.close_client()
+                    mpv_client.close_server()
+                    break
+        else:
+            while True:
+                for channel in channels:
+                    instrument_372.set_scanner_status(input_channel=channel, status=False)
+                    time.sleep(4)
+                    sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
+                                                  _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+                    queue.put((channel, sample_data))
+                if thread_stop_indicator.value:
+                    mpv_client.close_client()
+                    mpv_client.close_server()
+                    break
     else:
         while True:
             time.sleep(1)
