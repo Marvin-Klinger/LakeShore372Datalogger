@@ -69,11 +69,16 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     return lgr
 
 
-def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
+def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
+                         temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
     colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
 
-    wasZoomed = False
+    # Initialize data storage for each channel
+    channel_data = {ch: {'time': [], 'resistance': [], 'temperature': []} for ch in channels}
+    max_points = 1000  # Maximum points to display
+    down_sample_threshold = max_points * 2  # When to start down-sampling
 
+    # Setup loggers
     loggers = [[] for _ in range(17)]
     for channel in channels:
         _lgr = setup_new_logger(channel, _time_at_beginning_of_experiment, measurements_per_scan, filepath)
@@ -81,104 +86,137 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         _lgr.propagate = False
         loggers[channel] = _lgr
 
-#TODO: this creates many potentially empty lists that will never be filled
+    # Plot setup
     plt.ion()
-    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
-    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
-    mplstyle.use('fast')
+    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(10, 8))
 
+    # Configure axes
     axs[0].set_ylabel('Resistance [Ohm]')
-    axs[0].set_title("Waiting for Data")
     axs[1].set_ylabel('Calibrated temperature [K]')
     axs[1].set_yscale('log')
-    #axs[1].set_ylim(0.01, 10)
     axs[1].set_xlabel('Time [s]')
-
     axs[0].set_title(os.path.basename(os.getcwd()))
-   
-    scatter=[]
-    for i in channels:
-        scatter.append(axs[0].scatter([], [], color=colors[i-1], linestyle='', marker='o', label=f"Ch {i}"))
+    axs[0].grid(False)
+    axs[1].grid(False)
+
+    # Initialize line objects for each channel
+    resistance_lines = {}
+    temperature_lines = {}
+    for ch in channels:
+        resistance_lines[ch], = axs[0].plot([], [], color=colors[ch - 1],
+                                            linestyle='', marker='.',
+                                            label=f"Ch {ch}", markersize=2)
+        temperature_lines[ch], = axs[1].plot([], [], color=colors[ch - 1],
+                                             linestyle='', marker='.',
+                                             markersize=2)
+
     axs[0].legend(loc='lower right')
-    for i in scatter:
-        i.remove()
 
-    #fig.canvas.draw()
-    #fig.canvas.flush_events()
+    # Initial draw to set up the canvas
+    fig.canvas.draw()
+    plt.show(block=False)
 
+    # Connect close event
+    fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
+
+    last_update = time.time()
+    update_interval = 0.1  # Minimum time between updates in seconds
+    was_zoomed = False
 
     while True:
         if thread_stop_indicator.value:
             break
-        # redraw the plot to keep the UI going if there is no new data
-        if queue.qsize() == 0:
-            #fig.canvas.draw()
+
+        # Process available data from queue
+        data_processed = False
+        while not queue.empty():
+            channel_index, sample_data = queue.get()
+
+            # Calculate means for the new data
+            resistance = sample_data["R"].mean()
+            time_value = sample_data["Elapsed time"].mean()
+            temperature = temperature_calibrations[channel_index - 1](resistance)
+
+            # Store data
+            channel_data[channel_index]['time'].append(time_value)
+            channel_data[channel_index]['resistance'].append(resistance)
+            channel_data[channel_index]['temperature'].append(temperature)
+
+            # Log data
+            log_data(loggers[channel_index], sample_data, temperature_calibrations[channel_index - 1], delimiter)
+
+            # Down-sample if necessary
+            if len(channel_data[channel_index]['time']) > down_sample_threshold:
+                for key in channel_data[channel_index]:
+                    data = channel_data[channel_index][key]
+                    indices = np.linspace(0, len(data) - 1, max_points, dtype=int)
+                    channel_data[channel_index][key] = [data[i] for i in indices]
+
+            data_processed = True
+
+        # Update plots if enough time has passed and new data was processed
+        current_time = time.time()
+        if data_processed and current_time - last_update >= update_interval:
+            # Update line data
+            for ch in channels:
+                resistance_lines[ch].set_data(channel_data[ch]['time'],
+                                              channel_data[ch]['resistance'])
+                temperature_lines[ch].set_data(channel_data[ch]['time'],
+                                               channel_data[ch]['temperature'])
+
+            # Handle auto-scaling
+            if fig.canvas.toolbar.mode == '':
+                if was_zoomed:
+                    axs[0].autoscale()
+                    axs[1].autoscale()
+                    was_zoomed = False
+                for ax in axs:
+                    ax.relim()
+                    ax.autoscale_view()
+            else:
+                was_zoomed = True
+
+            # Redraw
+            fig.canvas.draw_idle()
             fig.canvas.flush_events()
-            time.sleep(0.05)
-            continue
 
-        # new data has arrived, start working with it
-        data_package = queue.get()  # Read from the queue
-        channel_index = data_package[0]
-        sample_data = data_package[1]
+            last_update = current_time
 
-        # get mean values and standard dev of all quantities
-        resistance_thermometer = sample_data["R"].mean()
-        quadrature_thermometer = sample_data["iR"].mean()
-        power_thermometer = sample_data["P"].mean()
-        time_thermometer = sample_data["Elapsed time"].mean()
-        temperature_ppms = sample_data["PPMS_T"].mean()
-        field_ppms = sample_data["PPMS_B"].mean()
+        # Small sleep to prevent CPU hogging
+        plt.pause(0.01)  # Use plt.pause instead of time.sleep for better GUI response
 
-        resistance_thermometer_err = sample_data["R"].std()
-        quadrature_thermometer_err = sample_data["iR"].std()
-        power_thermometer_err = sample_data["P"].std()
-        time_thermometer_err = sample_data["Elapsed time"].std()
-        temperature_ppms_err = sample_data["PPMS_T"].std()
-        field_ppms_err = sample_data["PPMS_B"].std()
-        # calculate the temperature during the resistivity measurement
 
-        temperature = temperature_calibrations[channel_index - 1](resistance_thermometer)
-        temperature_upper = temperature_calibrations[channel_index - 1](resistance_thermometer - resistance_thermometer_err)
-        temperature_lower = temperature_calibrations[channel_index - 1](resistance_thermometer + resistance_thermometer_err)
+def log_data(logger, sample_data, temperature_calibration, delimiter):
+    """Helper function to handle logging of data"""
+    resistance = sample_data["R"].mean()
+    quadrature = sample_data["iR"].mean()
+    power = sample_data["P"].mean()
+    time_val = sample_data["Elapsed time"].mean()
+    temperature_ppms = sample_data["PPMS_T"].mean()
+    field_ppms = sample_data["PPMS_B"].mean()
 
-        # temperature_error = temperature_lower / 2 + temperature_upper / 2 - temperature
-        temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
+    resistance_err = sample_data["R"].std()
+    quadrature_err = sample_data["iR"].std()
+    power_err = sample_data["P"].std()
+    time_err = sample_data["Elapsed time"].std()
+    temperature_ppms_err = sample_data["PPMS_T"].std()
+    field_ppms_err = sample_data["PPMS_B"].std()
 
-        logline = str(datetime.now()) + delimiter + str(time_thermometer) + delimiter + str(
-            time_thermometer_err) + delimiter + str(temperature) + delimiter + str(temperature_error) + delimiter + str(
-            resistance_thermometer) + delimiter + str(resistance_thermometer_err) + delimiter + str(
-            quadrature_thermometer) + delimiter + str(quadrature_thermometer_err) + delimiter + str(
-            power_thermometer) + delimiter + str(power_thermometer_err) + delimiter + str(field_ppms) + delimiter + str(
-            field_ppms_err) + delimiter + str(temperature_ppms) + delimiter + str(temperature_ppms_err)
+    temperature = temperature_calibration(resistance)
+    temperature_upper = temperature_calibration(resistance - resistance_err)
+    temperature_lower = temperature_calibration(resistance + resistance_err)
+    temperature_error = np.absolute((temperature_upper - temperature_lower) / 2)
 
-        loggers[channel_index].info(logline)
+    logline = (f"{datetime.now()}{delimiter}"
+               f"{time_val}{delimiter}{time_err}{delimiter}"
+               f"{temperature}{delimiter}{temperature_error}{delimiter}"
+               f"{resistance}{delimiter}{resistance_err}{delimiter}"
+               f"{quadrature}{delimiter}{quadrature_err}{delimiter}"
+               f"{power}{delimiter}{power_err}{delimiter}"
+               f"{field_ppms}{delimiter}{field_ppms_err}{delimiter}"
+               f"{temperature_ppms}{delimiter}{temperature_ppms_err}")
 
-        axs[0].plot(time_thermometer, resistance_thermometer, color=colors[channel_index-1], linestyle='', marker='.')
-        axs[1].plot(time_thermometer, temperature, color=colors[channel_index-1], linestyle='', marker='.')
-        
-        if queue.qsize() > 5:
-            """
-            Last resort. More than 5 recent measurements were not processed due to long redraw time.
-            Clear interface
-            """
-            axs[0].clear()
-            axs[1].clear()
-        """
-        Only refresh the plot if no more than one measurement remains to be processed. This stops the queue from
-        getting to long. 
-        """
-        #TODO: for all time series
-        if fig.canvas.toolbar.mode == '':
-            if wasZoomed:
-                axs[0].autoscale()
-                axs[1].autoscale()
-                wasZoomed = False
-            #if queue.qsize() < 2:
-            #    fig.canvas.draw()
-            #    fig.canvas.flush_events()
-        else:
-            wasZoomed = True
+    logger.info(logline)
 
 
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
@@ -229,7 +267,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                     break
     else:
         while True:
-            time.sleep(1)
+            time.sleep(0.1)
             for channel in channels:
                 sample_data = acquire_samples_debug_ppms(False, measurements_per_scan, channel, _time_at_beginning_of_experiment, _mpv_client = mpv_client)
                 print(queue.qsize())
