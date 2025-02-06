@@ -56,45 +56,47 @@ def acquire_samples(model372, number_of_samples, channel_number, time_at_startup
     return data
 
 
-def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None, _mpv_client = mpv.Client()):
-
+def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_startup, channel_settings=None,
+                         _mpv_client=mpv.Client()):
     if channel_settings is not None:
         model372.configure_input(channel_number, channel_settings)
 
-    # data = pandas.DataFrame(columns=["Timestamp", "Elapsed time", "R", "iR", "P"])
+    # Create empty DataFrame with the required columns
+    # data = pandas.DataFrame(columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
 
-    current_timestamp = datetime.now()
-    timedelta = current_timestamp - time_at_startup
+    # Pre-allocate the DataFrame with the correct number of rows
+    data = pandas.DataFrame(index=range(number_of_samples),
+                            columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
 
-    readings = model372.get_all_input_readings(channel_number)
-    try:
-        field, field_status = _mpv_client.get_field()
-    except:
-        field = field_status = np.nan
-    try:
-        temp, temp_status = _mpv_client.get_temperature()
-    except:
-        temp = temp_status = np.nan
-
-    data = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
-                            readings['quadrature'], readings['power'], field, temp]],
-                            columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B","PPMS_T"])
-
-    for _ in range(number_of_samples - 1):
+    # Collect data for each sample
+    for i in range(number_of_samples):
         current_timestamp = datetime.now()
         timedelta = current_timestamp - time_at_startup
 
         readings = model372.get_all_input_readings(channel_number)
-        field, field_status = _mpv_client.get_field()
-        temp, temp_status = _mpv_client.get_temperature()
 
-        series_for_concat = pandas.DataFrame([[datetime.now(), timedelta.total_seconds(), readings['resistance'],
-                                               readings['quadrature'], readings['power'], field, temp]],
-                                             columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B","PPMS_T"])
+        try:
+            field, field_status = _mpv_client.get_field()
+        except:
+            field = field_status = np.nan
 
-        data = pandas.concat([data, series_for_concat], ignore_index=True)
+        try:
+            temp, temp_status = _mpv_client.get_temperature()
+        except:
+            temp = temp_status = np.nan
+
+        # Insert data into the pre-allocated DataFrame
+        data.iloc[i] = [
+            current_timestamp,
+            timedelta.total_seconds(),
+            readings['resistance'],
+            readings['quadrature'],
+            readings['power'],
+            field,
+            temp
+        ]
+
     return data
-
 #def model372_thermometer_and_sample(thermometer_channel, sample_channel, filename='', save_raw_data=False,
 #                                    configure_inputs=False, delimiter=',', ip_address="192.168.0.12",
 #                                    measurements_per_scan=200):
