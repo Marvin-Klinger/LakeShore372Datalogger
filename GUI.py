@@ -6,6 +6,7 @@ import multiprocessing
 import time
 import TemperatureCalibration
 import MultiChannelReaderProcess
+import Plotter
 import numpy
 import MultiPyVu as mpv
 
@@ -52,10 +53,11 @@ def readSettings():
         return
     return
 
-def writeSettings(dirpath):
-    os.makedirs(dirpath, exist_ok=True) #Tkinter askdir does not offer to create new Folder on Linuxplatforms
-    if(os.path.isfile(f"{dirpath}/settings.json")):
-        if not messagebox.askokcancel(parent=frm, title="Solidcryo", message="You are about to overwrite your already existing Settingsfile and eventually datafiles.", detail="Proceed?", icon='warning'):
+def writeSettings():
+    global filepath
+    os.makedirs(filepath, exist_ok=True) #Tkinter askdir does not offer to create new Folder on Linuxplatforms
+    if(os.path.isfile(f"{filepath}/settings.json")):
+        if not messagebox.askokcancel(parent=frm, title="Information", message="You are about to overwrite your already existing Settingsfile and eventually datafiles.", detail="Proceed?", icon='warning'):
             return
     #Convert Tk-Integer to normal Integer
     myChannels = numpy.array([])
@@ -65,24 +67,32 @@ def writeSettings(dirpath):
     for calibration in calibrations:
         myCalibrations = numpy.append(myCalibrations, calibration.get())
     #Write settings to json
-    with open(f"{dirpath}/settings.json", 'w') as settingsFile:
+    with open(f"{filepath}/settings.json", 'w') as settingsFile:
         json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations.tolist()}, settingsFile)
 
-    DynaProcess = multiprocessing.Process(target=startProcessing, args=(dirpath, 0))
+    DynaProcess = multiprocessing.Process(target=startProcessing, args=(filepath,))
     DynaProcess.start()
 
     startButton["state"] = "disabled"
-    startButton.configure(text="Running...", command=lambda:emptyFunction)
+    fileField["state"] = "disabled"
+    startButton.configure(text="Running...", command=emptyFunction)
     while(DynaProcess.is_alive()):
         root.update()
         time.sleep(0.5)
-    startButton.config(text="START", command=lambda:writeSettings(dirpath))
+    startButton.config(text="START", command=writeSettings)
     startButton["state"] = "enabled"
+    fileField["state"] = "normal"
     return
 
-def startProcessing(dirpath, i):
+def showData():
+    PlotterProcess = multiprocessing.Process(target=Plotter.main, args=(filepath,))
+    PlotterProcess.daemon = True
+    PlotterProcess.start()
+    return
+
+def startProcessing(filepath):
     with mpv.Server():
-        MultiChannelReaderProcess.main(dirpath)
+        MultiChannelReaderProcess.main(filepath)
     return
 
 def emptyFunction():
@@ -117,8 +127,10 @@ if __name__ == "__main__":
     sampleRateField.insert(0, "73")
     
     
-    startButton = ttk.Button(frm, text="START", command=lambda:writeSettings(filepath))
-    startButton.grid(column=0, row=6, columnspan=4)
+    startButton = ttk.Button(frm, text="START", command=writeSettings)
+    startButton.grid(column=0, row=6, columnspan=2)
+    pltButton = ttk.Button(frm, text="SHOW DATA", command=showData)
+    pltButton.grid(column=1, row=6, columnspan=2)
 
     checkBox = ttk.Checkbutton(frm, text="Use fake data", variable=debugState, onvalue=1)
     checkBox.grid(column=0, row=7, columnspan=1)
