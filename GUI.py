@@ -6,7 +6,6 @@ import multiprocessing
 import time
 import TemperatureCalibration
 import MultiChannelReaderProcess
-import Plotter
 import numpy
 import MultiPyVu as mpv
 
@@ -84,12 +83,6 @@ def writeSettings():
     fileField["state"] = "normal"
     return
 
-def showData():
-    PlotterProcess = multiprocessing.Process(target=Plotter.main, args=(filepath,))
-    PlotterProcess.daemon = True
-    PlotterProcess.start()
-    return
-
 def startProcessing(filepath):
     with mpv.Server():
         MultiChannelReaderProcess.main(filepath)
@@ -129,8 +122,6 @@ if __name__ == "__main__":
     
     startButton = ttk.Button(frm, text="START", command=writeSettings)
     startButton.grid(column=0, row=6, columnspan=2)
-    pltButton = ttk.Button(frm, text="SHOW DATA", command=showData)
-    pltButton.grid(column=1, row=6, columnspan=2)
 
     checkBox = ttk.Checkbutton(frm, text="Use fake data", variable=debugState, onvalue=1)
     checkBox.grid(column=0, row=7, columnspan=1)
