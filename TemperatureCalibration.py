@@ -104,8 +104,62 @@ def cal_VIII(resistance):
         return np.nan
     return t
 
+
+def cal_XIV(resistance):
+    if resistance > 72200:
+        return np.nan
+    if resistance < 4397:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1400)
+    t = np.exp(
+        - 4.11495995586646
+        + 7.69172693111883 * x
+        - 44.1980827675411 * x ** 2
+        + 195.14623356676 * x ** 3
+        - 569.239821947079 * x ** 4
+        + 1121.01070356226 * x ** 5
+        - 1532.38312826353 * x ** 6
+        + 1485.30673824265 * x ** 7
+        - 1033.29591061602 * x ** 8
+        + 517.063114343151 * x ** 9
+        - 184.365647803601 * x ** 10
+        + 45.6726203855708 * x ** 11
+        - 7.46610262030369 * x ** 12
+        + 0.72379973289235 * x ** 13
+        - 0.0315040282067667 * x ** 14 )
+    if t < 0:
+        return np.nan
+    return t
+
+
+def cal_CHE5(resistance):
+    if resistance > 86500:
+        return np.nan
+    if resistance < 4444:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1400)
+    t = np.exp(
+        - 3.44844161632531
+        + 1.6691138167603 * x
+        - 2.50146315644876 * x ** 2
+        + 8.33206193926032 * x ** 3
+        - 26.1756484539086 * x ** 4
+        + 62.6401427094544 * x ** 5
+        - 105.259792347065 * x ** 6
+        + 123.06076863508 * x ** 7
+        - 100.744560782332 * x ** 8
+        + 57.9817977258579 * x ** 9
+        - 23.3227052825549 * x ** 10
+        + 6.41520115594516 * x ** 11
+        - 1.14935838297727 * x ** 12
+        + 0.120811507650645 * x ** 13
+        - 0.0056498743217858 * x ** 14 )
+    if t < 0:
+        return np.nan
+    return t
+
 def cal_XII(resistance):
-    if resistance > 99212: #this is dangerous, the thermometer is not well calibrated below 30 mK (80kOhm)
+    if resistance > 99212: #this is dangerous. the thermometer is not well calibrated below 30 mK (80kOhm)
         return np.nan
     if resistance < 2500:
         return np.nan
