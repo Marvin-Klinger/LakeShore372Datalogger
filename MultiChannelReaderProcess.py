@@ -1,19 +1,19 @@
 from multiprocessing import Process, Queue, Value
-import numpy as np
-from LS_Datalogger2_v2 import acquire_samples, acquire_samples_ppms
-from emulator import acquire_samples_debug, acquire_samples_debug_ppms
+from LS_Datalogger2_v2 import acquire_samples_ppms
+from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
-import time
 import logging
-from os import makedirs
-import os
-import sys
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.style as mplstyle
 import TemperatureCalibration
 import MultiPyVu as mpv
+from collections import deque
+import numpy as np
+import time
+import os
+from multiprocessing import Value
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -71,12 +71,31 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
                          temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
+
     colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
 
-    # Initialize data storage for each channel
-    channel_data = {ch: {'time': [], 'resistance': [], 'temperature': []} for ch in channels}
-    max_points = 1000  # Maximum points to display
-    down_sample_threshold = max_points * 2  # When to start down-sampling
+    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+    max_recent_points = 100  # Maximum points in recent deque
+    buffer_threshold = 200  # When to downsample buffer points
+
+    # Initialize data storage for each channel using two-part storage strategy
+    channel_data = {ch: {
+        'historical': {  # Twice downsampled, fixed
+            'time': [],
+            'resistance': [],
+            'temperature': []
+        },
+        'recent': {  # Most recent points, full resolution
+            'time': deque(maxlen=max_recent_points),
+            'resistance': deque(maxlen=max_recent_points),
+            'temperature': deque(maxlen=max_recent_points)
+        },
+        'buffer': {  # Once downsampled points
+            'time': [],
+            'resistance': [],
+            'temperature': []
+        }
+    } for ch in channels}
 
     # Setup loggers
     loggers = [[] for _ in range(17)]
@@ -86,8 +105,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         _lgr.propagate = False
         loggers[channel] = _lgr
 
-    # Plot setup
-    plt.ion()
+    # Plot setup - create figure before turning on interactive mode
     fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(10, 8))
 
     # Configure axes
@@ -99,20 +117,86 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[0].grid(False)
     axs[1].grid(False)
 
-    # Initialize line objects for each channel
-    resistance_lines = {}
-    temperature_lines = {}
-    for ch in channels:
-        resistance_lines[ch], = axs[0].plot([], [], color=colors[ch - 1],
-                                            linestyle='', marker='.',
-                                            label=f"Ch {ch}", markersize=2)
-        temperature_lines[ch], = axs[1].plot([], [], color=colors[ch - 1],
-                                             linestyle='', marker='.',
-                                             markersize=2)
+    # Initialize line objects for each channel (separate lines for each data type)
+    channel_lines = {ch: {
+        'resistance': {
+            'historical': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
+            'buffer': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
+            'recent': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2,
+                                  label=f"Ch {ch}")[0]
+        },
+        'temperature': {
+            'historical': axs[1].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
+            'buffer': axs[1].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
+            'recent': axs[1].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0]
+        }
+    } for ch in channels}
 
     axs[0].legend(loc='lower right')
 
-    # Initial draw to set up the canvas
+    def downsample_buffer(buffer_data):
+        """Downsample buffer data by averaging adjacent pairs of points"""
+        if len(buffer_data['time']) < 2:
+            return buffer_data
+
+        # Convert to numpy arrays for efficient processing
+        times = np.array(buffer_data['time'])
+        resistances = np.array(buffer_data['resistance'])
+        temperatures = np.array(buffer_data['temperature'])
+
+        # Calculate number of complete pairs
+        n_pairs = len(times) // 2
+
+        # Downsample by averaging pairs
+        downsampled = {
+            'time': np.mean(times[:2 * n_pairs].reshape(-1, 2), axis=1).tolist(),
+            'resistance': np.mean(resistances[:2 * n_pairs].reshape(-1, 2), axis=1).tolist(),
+            'temperature': np.mean(temperatures[:2 * n_pairs].reshape(-1, 2), axis=1).tolist()
+        }
+
+        # Handle any remaining odd point
+        if len(times) % 2:
+            downsampled['time'].append(times[-1])
+            downsampled['resistance'].append(resistances[-1])
+            downsampled['temperature'].append(temperatures[-1])
+
+        return downsampled
+
+    def update_plot_data(ch):
+        """Update plot data for a specific channel"""
+        data = channel_data[ch]
+
+        # Update historical data
+        channel_lines[ch]['resistance']['historical'].set_data(
+            data['historical']['time'],
+            data['historical']['resistance']
+        )
+        channel_lines[ch]['temperature']['historical'].set_data(
+            data['historical']['time'],
+            data['historical']['temperature']
+        )
+
+        # Update buffer data
+        channel_lines[ch]['resistance']['buffer'].set_data(
+            data['buffer']['time'],
+            data['buffer']['resistance']
+        )
+        channel_lines[ch]['temperature']['buffer'].set_data(
+            data['buffer']['time'],
+            data['buffer']['temperature']
+        )
+
+        # Update recent data
+        channel_lines[ch]['resistance']['recent'].set_data(
+            list(data['recent']['time']),
+            list(data['recent']['resistance'])
+        )
+        channel_lines[ch]['temperature']['recent'].set_data(
+            list(data['recent']['time']),
+            list(data['recent']['temperature'])
+        )
+
+    # Initial draw
     fig.canvas.draw()
     plt.show(block=False)
 
@@ -120,51 +204,59 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     fig.canvas.mpl_connect('close_event', lambda event: on_close(thread_stop_indicator))
 
     last_update = time.time()
-    update_interval = 0.1  # Minimum time between updates in seconds
+    update_interval = 0.4
     was_zoomed = False
 
     while True:
         if thread_stop_indicator.value:
             break
 
-        # Process available data from queue
         data_processed = False
         while not queue.empty():
             channel_index, sample_data = queue.get()
 
-            # Calculate means for the new data
+            # Calculate means
             resistance = sample_data["R"].mean()
             time_value = sample_data["Elapsed time"].mean()
             temperature = temperature_calibrations[channel_index - 1](resistance)
 
-            # Store data
-            channel_data[channel_index]['time'].append(time_value)
-            channel_data[channel_index]['resistance'].append(resistance)
-            channel_data[channel_index]['temperature'].append(temperature)
+            data = channel_data[channel_index]
+
+            # If recent deque is full, move oldest point to buffer
+            if len(data['recent']['time']) == max_recent_points:
+                data['buffer']['time'].append(data['recent']['time'][0])
+                data['buffer']['resistance'].append(data['recent']['resistance'][0])
+                data['buffer']['temperature'].append(data['recent']['temperature'][0])
+
+            # Add new point to recent
+            data['recent']['time'].append(time_value)
+            data['recent']['resistance'].append(resistance)
+            data['recent']['temperature'].append(temperature)
+
+            # Check if buffer needs downsampling
+            if len(data['buffer']['time']) >= buffer_threshold:
+                # First, move current buffer to historical (after downsampling)
+                downsampled = downsample_buffer(data['buffer'])
+                data['historical']['time'].extend(downsampled['time'])
+                data['historical']['resistance'].extend(downsampled['resistance'])
+                data['historical']['temperature'].extend(downsampled['temperature'])
+
+                # Clear buffer
+                data['buffer']['time'].clear()
+                data['buffer']['resistance'].clear()
+                data['buffer']['temperature'].clear()
 
             # Log data
             log_data(loggers[channel_index], sample_data, temperature_calibrations[channel_index - 1], delimiter)
-
-            # Down-sample if necessary
-            if len(channel_data[channel_index]['time']) > down_sample_threshold:
-                for key in channel_data[channel_index]:
-                    data = channel_data[channel_index][key]
-                    indices = np.linspace(0, len(data) - 1, max_points, dtype=int)
-                    channel_data[channel_index][key] = [data[i] for i in indices]
-
             data_processed = True
 
-        # Update plots if enough time has passed and new data was processed
+        # Update plots if needed
         current_time = time.time()
         if data_processed and current_time - last_update >= update_interval:
-            # Update line data
             for ch in channels:
-                resistance_lines[ch].set_data(channel_data[ch]['time'],
-                                              channel_data[ch]['resistance'])
-                temperature_lines[ch].set_data(channel_data[ch]['time'],
-                                               channel_data[ch]['temperature'])
+                update_plot_data(ch)
 
-            # Handle auto-scaling
+                # Handle auto-scaling
             if fig.canvas.toolbar.mode == '':
                 if was_zoomed:
                     axs[0].autoscale()
@@ -176,15 +268,11 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             else:
                 was_zoomed = True
 
-            # Redraw
             fig.canvas.draw_idle()
             fig.canvas.flush_events()
-
             last_update = current_time
 
-        # Small sleep to prevent CPU hogging
-        plt.pause(0.01)  # Use plt.pause instead of time.sleep for better GUI response
-
+        time.sleep(0.05)
 
 def log_data(logger, sample_data, temperature_calibration, delimiter):
     """Helper function to handle logging of data"""
@@ -270,7 +358,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
             time.sleep(0.1)
             for channel in channels:
                 sample_data = acquire_samples_debug_ppms(False, measurements_per_scan, channel, _time_at_beginning_of_experiment, _mpv_client = mpv_client)
-                print(queue.qsize())
+                #print(queue.qsize())
                 queue.put((channel, sample_data))
 
             if thread_stop_indicator.value:
