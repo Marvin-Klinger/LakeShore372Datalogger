@@ -209,7 +209,7 @@ def cal_XIII(resistance):
         - 0.00275851262646419 * x ** 13
         + 1.06845338189234E-4 * x ** 14)
 
-    if t < 0.04:
+    if t < 0.03:
         return np.nan
     return t
 
