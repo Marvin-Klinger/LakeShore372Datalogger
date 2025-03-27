@@ -7,7 +7,7 @@ import time
 import TemperatureCalibration
 import MultiChannelReaderProcess
 import numpy
-import MultiPyVu as mpv
+import datetime
 
 root = Tk()
 frm = ttk.Frame(root)
@@ -67,7 +67,7 @@ def writeSettings():
         myCalibrations = numpy.append(myCalibrations, calibration.get())
     #Write settings to json
     with open(f"{filepath}/settings.json", 'w') as settingsFile:
-        json.dump({'filepath': filepath, 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), "samplerate": int(sampleRateField.get()), "calibration": myCalibrations.tolist()}, settingsFile)
+        json.dump({'filepath': filepath, 'date': str(datetime.datetime.now()), 'Channels': myChannels[myChannels != 0].astype(int).tolist(), 'debug': bool(debugState.get()), 'sampleName': str(sampleNameField.get()), 'sampleWeight': float(sampleWeightField.get()), 'comments': str(commentField.get('1.0', 'end-1c')),"samplerate": int(sampleRateField.get()), "calibration": myCalibrations.tolist()}, settingsFile)
 
     DynaProcess = multiprocessing.Process(target=startProcessing, args=(filepath,))
     DynaProcess.start()
@@ -125,5 +125,18 @@ if __name__ == "__main__":
 
     checkBox = ttk.Checkbutton(frm, text="Use fake data", variable=debugState, onvalue=1)
     checkBox.grid(column=0, row=7, columnspan=1)
+    
+    ttk.Label(frm, text="Samplename").grid(column=0, row=8)
+    sampleNameField = Entry(frm)
+    sampleNameField.grid(column=1, row=8, columnspan=1, sticky='w')
+    sampleNameField.insert(0, "My Structure")
+
+    ttk.Label(frm, text="Mass [mg]").grid(column=0, row=9)
+    sampleWeightField = Entry(frm)
+    sampleWeightField.grid(column=1, row=9, columnspan=1, sticky='w')
+
+    ttk.Label(frm, text="Comments").grid(column=0, row=10)
+    commentField = Text(frm, height=5, width=20)
+    commentField.grid(column=1, row=10, columnspan=1, sticky='w')
 
     root.mainloop()
