@@ -209,6 +209,9 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
 
     while True:
         if thread_stop_indicator.value:
+            plt.savefig(f"{filepath}/overview.png")
+            plt.savefig(f"{filepath}/overview.jpg")
+            plt.savefig(f"{filepath}/overview.pdf")
             break
 
         data_processed = False
