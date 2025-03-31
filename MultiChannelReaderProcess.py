@@ -357,7 +357,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
         if configure_input:
             settings_thermometer = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
                                                               Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                              Model372.AutoRangeMode.CURRENT, False,
+                                                              Model372.AutoRangeMode.ROX102B, False,
                                                               Model372.InputSensorUnits.OHMS,
                                                               Model372.MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
             for channel in channels:
