@@ -1,4 +1,6 @@
 from multiprocessing import Process, Queue, Value
+
+from GUI import channels
 from LS_Datalogger2_v2 import acquire_samples_ppms
 from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
@@ -17,6 +19,38 @@ from multiprocessing import Value
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
+
+def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_client):
+    number_of_samples = 100
+    cal_channels = [9,10,11,12]
+    cal_values = [2000, 20000, 49.9, 49.9*3]
+
+    cal_currents = [Model372.MeasurementInputCurrentRange.RANGE_316_PICO_AMPS,
+                  Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
+                  Model372.MeasurementInputCurrentRange.RANGE_3_POINT_16_NANO_AMPS,
+                  Model372.MeasurementInputCurrentRange.RANGE_10_NANO_AMPS]
+
+    cal_ranges = [Model372.MeasurementInputResistance.RANGE_2_KIL_OHMS,
+                  Model372.MeasurementInputResistance.RANGE_6_POINT_32_KIL_OHMS,
+                  Model372.MeasurementInputResistance.RANGE_20_KIL_OHMS,
+                  Model372.MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS,
+                  Model372.MeasurementInputResistance.RANGE_200_KIL_OHMS,
+                  Model372.MeasurementInputResistance.RANGE_632_KIL_OHMS]
+
+    for channel in channels:
+        for range in cal_ranges:
+            for current in cal_currents:
+                channel_settings = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
+                                                              current,
+                                                              Model372.AutoRangeMode.OFF, False,
+                                                              Model372.InputSensorUnits.OHMS, range)
+                instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+                instrument_372.configure_input(channel, channel_settings)
+                instrument_372.set_scanner_status(input_channel=channel, status=False)
+                time.sleep(5)
+                sample_data = acquire_samples_ppms(instrument_372, number_of_samples, channel,
+                                                   _time_at_beginning_of_experiment, _mpv_client=_mpv_client)
+                sample_data.to_csv(_filepath, sep=',', encoding='utf-8', index=False, header=True)
 
 def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./', delimiter=','):
     name = f"logger {channel_number}"
