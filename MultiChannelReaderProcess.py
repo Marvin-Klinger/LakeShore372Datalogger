@@ -366,6 +366,9 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
         if len(channels) == 1:
             channel = channels[0]
             instrument_372.set_scanner_status(input_channel=channel, status=False)
+            input_parameters = instrument_372.get_filter(channel)
+            #wait for the filter to settle
+
             time.sleep(4)
             while True:
                 sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
