@@ -1,6 +1,4 @@
 from multiprocessing import Process, Queue, Value
-
-from GUI import channels
 from LS_Datalogger2_v2 import acquire_samples_ppms
 from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
@@ -20,7 +18,7 @@ from multiprocessing import Value
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
 
-def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_client):
+def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_client, channels):
     number_of_samples = 100
     cal_channels = [9,10,11,12]
     cal_values = [2000, 20000, 49.9, 49.9*3]
@@ -306,7 +304,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
             fig.canvas.flush_events()
             last_update = current_time
 
-        time.sleep(0.05)
+        plt.pause(0.4)
 
 def log_data(logger, sample_data, temperature_calibration, delimiter):
     """Helper function to handle logging of data"""
