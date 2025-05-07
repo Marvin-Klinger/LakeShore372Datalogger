@@ -327,6 +327,61 @@ def cal_UTQ5(resistance):
     return t
 
 
+def cal_UTQ8(resistance):
+    if resistance > 82840:
+        return np.nan
+    if resistance < 3910:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1400)
+    t = np.exp(
+    - 3.52394572893064
+    + 1.62095556446493 * x
+    - 2.90853577017576 * x ** 2
+    + 10.8514429896907 * x ** 3
+    - 29.9392403551094 * x ** 4
+    + 55.9146125520038 * x ** 5
+    - 70.4886070327271 * x ** 6
+    + 61.0045854719994 * x ** 7
+    - 36.6971081680757 * x ** 8
+    + 15.3789752554898 * x ** 9
+    - 4.44054181231263 * x ** 10
+    + 0.857213113886487 * x ** 11
+    - 0.103988583202568 * x ** 12
+    + 0.00696960141435143 * x ** 13
+    - 1.85462453724902E-4 * x ** 14)
+
+    if t < 0.03: #this is quite high, but the cal run was not perfect V2.4r5
+        return np.nan
+    return t
+
+
+def cal_UTQ9(resistance):
+    if resistance > 79300:
+        return np.nan
+    if resistance < 3820:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1400)
+    t = np.exp(
+    - 3.4674548041673
+    + 1.62576125008428 * x
+    - 2.26707669402106 * x ** 2
+    + 5.05472447065757 * x ** 3
+    - 8.50101412499486 * x ** 4
+    + 11.0755435303649 * x ** 5
+    - 11.0709252750389 * x ** 6
+    + 8.26275542119113 * x ** 7
+    - 4.44509719930531 * x ** 8
+    + 1.66276807784458 * x ** 9
+    - 0.413207286925892 * x ** 10
+    + 0.0628335948627899 * x ** 11
+    - 0.00471644295747472 * x ** 12
+    + 1.32064985581528E-5 * x ** 13
+    + 1.46140148060052E-5 * x ** 14)
+
+    if t < 0.03: #this is quite high, but the cal run was not perfect V2.4r5
+        return np.nan
+    return t
+
 
 def cal_ht1(x):
     if x < 4600:
