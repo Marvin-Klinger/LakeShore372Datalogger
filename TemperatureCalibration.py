@@ -28,6 +28,15 @@ def cal_RX202A(x):
                + 1.53404398537456E-5 * x ** 14)
     return t
 
+# extended range calibration for RX202A far below official calibration (22mK)
+# WARNING: The Thermometer is NOT CALIBRATED above 236751 Ohms! Apply caution when using.
+def cal_RX202A_ULT(x):
+    if x > 226000:
+        x = np.log(x - 3000)
+        b = - 5.91720757644284 + 0.14100574738178 * np.absolute(x - ( + 18.5631796194264)) ** 1.48488950436842
+        return np.exp(b)
+    return cal_RX202A(x)
+
 
 def cal_III(resistance):
     if resistance > 87682:
