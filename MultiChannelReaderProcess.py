@@ -1,5 +1,5 @@
 from multiprocessing import Process, Queue, Value
-from LS_Datalogger2_v2 import acquire_samples_ppms
+from LS_Datalogger2_v2 import acquire_samples_ppms, acquire_data_synktek
 from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
 import logging
@@ -144,6 +144,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[0].set_ylabel('Resistance [Ohm]')
     axs[1].set_ylabel('Calibrated temperature [K]')
     axs[1].set_yscale('log')
+    axs[0].set_yscale('log')
     axs[1].set_xlabel('Time [s]')
     axs[0].set_title(os.path.basename(os.getcwd()))
     axs[0].grid(False)
@@ -350,56 +351,17 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
     except:
         print("Could not connect to PPMS")
 
-    if not debug:
-        instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
-        if configure_input:
-            settings_thermometer = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
-                                                              Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
-                                                              Model372.AutoRangeMode.ROX102B, False,
-                                                              Model372.InputSensorUnits.OHMS,
-                                                              Model372.MeasurementInputResistance.RANGE_63_POINT_2_KIL_OHMS)
-            for channel in channels:
-                instrument_372.configure_input(channel, settings_thermometer)
+    while True:
+        sample_data_a, sample_data_b = acquire_data_synktek(measurements_per_scan,_time_at_beginning_of_experiment,_mpv_client=mpv_client)
+        queue.put((1, sample_data_a))
+        queue.put((2, sample_data_b))
+        #queue.put((3, sample_data_c))
 
-        if len(channels) == 1:
-            channel = channels[0]
-            instrument_372.set_scanner_status(input_channel=channel, status=False)
-            input_parameters = instrument_372.get_filter(channel)
-            #wait for the filter to settle
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
 
-            time.sleep(4)
-            while True:
-                sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
-                                              _time_at_beginning_of_experiment, _mpv_client=mpv_client)
-                queue.put((channel, sample_data))
-                if thread_stop_indicator.value:
-                    mpv_client.close_client()
-                    mpv_client.close_server()
-                    break
-        else:
-            while True:
-                for channel in channels:
-                    instrument_372.set_scanner_status(input_channel=channel, status=False)
-                    time.sleep(4)
-                    sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
-                                                  _time_at_beginning_of_experiment, _mpv_client=mpv_client)
-                    queue.put((channel, sample_data))
-                if thread_stop_indicator.value:
-                    mpv_client.close_client()
-                    mpv_client.close_server()
-                    break
-    else:
-        while True:
-            time.sleep(0.1)
-            for channel in channels:
-                sample_data = acquire_samples_debug_ppms(False, measurements_per_scan, channel, _time_at_beginning_of_experiment, _mpv_client = mpv_client)
-                #print(queue.qsize())
-                queue.put((channel, sample_data))
-
-            if thread_stop_indicator.value:
-                mpv_client.close_client()
-                mpv_client.close_server()
-                break
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',',
                           save_raw_data=True,
