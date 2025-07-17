@@ -92,5 +92,6 @@ def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_st
             field,
             temp
         ]
+        time.sleep(0.1)
 
     return data
