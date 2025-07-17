@@ -9,23 +9,6 @@ import MultiChannelReaderProcess
 import numpy
 import MultiPyVu as mpv
 
-root = Tk()
-frm = ttk.Frame(root)
-frm.grid()
-
-filepath = "" #This is a dirpath
-
-#Needed to evaluate Checkbox-states
-channels = []
-for i in range(0,4):
-    channels.append(IntVar())
-
-debugState = IntVar()
-
-calibrations = []
-for i in range(0,4):
-    calibrations.append(StringVar())
-
 def fileBrowsing():       #Open filebrowser and set
     filepath = filedialog.askdirectory()
     fileField.delete(0, 'end')
@@ -92,6 +75,24 @@ def emptyFunction():
     return
 
 if __name__ == "__main__":
+
+    root = Tk()
+    frm = ttk.Frame(root)
+    frm.grid()
+
+    filepath = ""  # This is a dirpath
+
+    # Needed to evaluate Checkbox-states
+    channels = []
+    for i in range(0, 4):
+        channels.append(IntVar())
+
+    debugState = IntVar()
+
+    calibrations = []
+    for i in range(0, 4):
+        calibrations.append(StringVar())
+
     if os.name == 'nt': #First call is needed for releasing. Later one is needed to make it work on Posix systems. They don't work together
         multiprocessing.freeze_support()
     else:
