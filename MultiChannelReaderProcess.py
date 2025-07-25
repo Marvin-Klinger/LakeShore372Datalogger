@@ -148,6 +148,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[0].set_ylabel('Resistance [Ohm]')
     axs[1].set_ylabel('Calibrated temperature [K]')
     axs[1].set_yscale('log')
+    axs[0].set_yscale('log')
     axs[1].set_xlabel('Time [s]')
     axs[0].set_title(os.path.basename(os.getcwd()))
     axs[0].grid(False)
@@ -168,7 +169,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         }
     } for ch in channels}
 
-    axs[0].legend(loc='lower right')
+    axs[0].legend(loc='upper left')
 
     def downsample_buffer(buffer_data):
         """Downsample buffer data by averaging adjacent pairs of points"""
@@ -346,6 +347,10 @@ def log_data(logger, sample_data, temperature_calibration, delimiter):
 def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
     ip_address = "192.168.0.12"
     mpv_client = mpv.Client()
+
+    if measurements_per_scan > 100:
+        measurements_per_scan = 100
+
     try:
         mpv_client.open()
     except:
@@ -356,8 +361,6 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
         data = acquire_samples_debug_ppms(False, measurements_per_scan, 'A',
                                           _time_at_beginning_of_experiment, _mpv_client=mpv_client)
         queue.put((13, data))
-        time.sleep(0.1)
-
         if thread_stop_indicator.value:
             mpv_client.close_client()
             mpv_client.close_server()
@@ -377,8 +380,9 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
 
 def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
 
-    current_setting_resistor = 50000
-    wire_resistance_roundtrip = 150
+    current_setting_resistor = 2382
+    wire_resistance_roundtrip = 30
+    preamp_gain = 10000
 
     mpv_client = mpv.Client()
     try:
@@ -398,7 +402,7 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
             mpv_client.close_server()
             break
 
-    lia = SR830("GPIB0::8::INSTR")
+    lia = SR830("GPIB0::9::INSTR")
 
     # Set the lock-in amplifier parameters
     # lia.frequency = 1000  # Set the lock-in frequency to 1 kHz
@@ -419,8 +423,8 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
             current_timestamp = datetime.now()
             timedelta = current_timestamp - _time_at_beginning_of_experiment
 
-            x = lia.x
-            y = lia.y
+            x = lia.x / preamp_gain
+            y = lia.y / preamp_gain
             v = lia.sine_voltage
             current = v / (current_setting_resistor + wire_resistance_roundtrip)
             resistance = x / current
@@ -494,6 +498,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                 for channel in channels:
                     instrument_372.set_scanner_status(input_channel=channel, status=False)
                     time.sleep(4)
+                    time.sleep(10)
                     sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
                                                   _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                     queue.put((channel, sample_data))
