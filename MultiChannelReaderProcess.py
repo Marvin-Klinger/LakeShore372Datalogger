@@ -1,6 +1,4 @@
 from multiprocessing import Process, Queue, Value
-
-#from GUI import channels
 from LS_Datalogger2_v2 import acquire_samples_ppms
 from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
@@ -8,16 +6,16 @@ import logging
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
-import matplotlib.style as mplstyle
 import TemperatureCalibration
 import MultiPyVu as mpv
 from collections import deque
 import numpy as np
 import time
 import os
-from multiprocessing import Value
 import pandas
 from pymeasure.instruments.srs import SR830
+from zhinst.toolkit import Session
+
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -108,7 +106,7 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
                          temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
 
-    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#d53e3eff"]
 
     #colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
     max_recent_points = 100  # Maximum points in recent deque
@@ -456,6 +454,82 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
         queue.put((14, data))
 
 
+def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
+    device_id = 'dev30987'
+    server_host = '192.168.156.14'
+
+    current_setting_resistor = 0
+    wire_resistance_roundtrip = 500
+
+    mpv_client = mpv.Client()
+    try:
+        mpv_client.open()
+    except:
+        print("Zurich : Could not connect to PPMS")
+
+    while debug:
+        time.sleep(0.1)
+        data = acquire_samples_debug_ppms(False, measurements_per_scan, 'A',
+                                          _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+        queue.put((15, data))
+        time.sleep(0.1)
+
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+    # Connect to the device
+    session = Session(server_host)
+    device = session.devices[device_id]
+
+    while True:
+        if thread_stop_indicator.value:
+            session.disconnect_device(device_id)
+
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+        device.demods[0].sample.subscribe()
+        time.sleep(measurements_per_scan / 5)
+        current_timestamp = datetime.now()
+        timedelta = current_timestamp - _time_at_beginning_of_experiment
+        time.sleep(measurements_per_scan / 5)
+        device.demods[0].sample.unsubscribe()
+
+        data = session.poll()
+        demod_sample = data[device.demods[0].sample]
+
+        try:
+            field, field_status = mpv_client.get_field()
+        except:
+            field = field_status = np.nan
+
+        try:
+            temp, temp_status = mpv_client.get_temperature()
+        except:
+            temp = temp_status = np.nan
+
+        output_voltage = device.sigouts[0].amplitudes[1]()
+        current = output_voltage / (current_setting_resistor + wire_resistance_roundtrip)
+
+        data = pandas.DataFrame(index=range(len(demod_sample['x'])),
+                                columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
+
+        data["Timestamp"] = current_timestamp
+        data["Elapsed time"] = timedelta.total_seconds()
+        data["R"] = demod_sample['x'] / current
+        data["iR"] = demod_sample['y'] / current
+        data["P"] = demod_sample['x'] * current
+
+        data["PPMS_B"] = field
+        data["PPMS_T"] = temp
+
+        queue.put((15, data))
+        time.sleep(0.1)
+
+
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
                         ip_address="192.168.0.12", thread_stop_indicator=Value('b', False),
                         debug=False):
@@ -574,6 +648,13 @@ def main(path):
                                                          _measurements_per_scan, shared_stop_indicator, _debug))
         sr830_process.daemon = True
         sr830_process.start()
+
+    if 15 in _channels:
+        _lakeshore_scanner_channels.remove(15)
+        mfli_process = Process(target=read_zurich, args=(ls_data_queue, time_at_beginning_of_experiment,
+                                                         _measurements_per_scan, shared_stop_indicator, _debug))
+        mfli_process.daemon = True
+        mfli_process.start()
 
     visualizer_process = start_data_visualizer(_channels, ls_data_queue, time_at_beginning_of_experiment,
                                                _measurements_per_scan, _filepath, _temperature_calibrations,

@@ -84,13 +84,13 @@ if __name__ == "__main__":
 
     # Needed to evaluate Checkbox-states
     channels = []
-    for i in range(0, 14):
+    for i in range(0, 15):
         channels.append(IntVar())
 
     debugState = IntVar()
 
     calibrations = []
-    for i in range(0, 14):
+    for i in range(0, 15):
         calibrations.append(StringVar(value="None"))
 
     if os.name == 'nt': #First call is needed for releasing. Later one is needed to make it work on Posix systems. They don't work together
@@ -120,6 +120,9 @@ if __name__ == "__main__":
 
     ttk.Checkbutton(checkBoxFrame, text="SR830", variable=channels[4], onvalue=14).grid(column=4, row=4)
     ttk.OptionMenu(checkBoxFrame, calibrations[13], "None", "None", *polynomials).grid(column=4, row=5)
+
+    ttk.Checkbutton(checkBoxFrame, text="MFLI", variable=channels[5], onvalue=15).grid(column=5, row=4)
+    ttk.OptionMenu(checkBoxFrame, calibrations[14], "None", "None", *polynomials).grid(column=5, row=5)
 
     ttk.Label(frm, text="Samplerate").grid(column=0, row=5)
     sampleRateField = Entry(frm, validate='key', validatecommand=(frm.register(lambda x: x.isdigit() or not x), '%P'), width=3)
