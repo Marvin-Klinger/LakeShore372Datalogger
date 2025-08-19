@@ -453,7 +453,7 @@ def cal_UTC02b(resistance):
         return np.nan
     if resistance < 435:
         return np.nan
-    x = 11.2 - np.log(resistance - 1400)
+    x = 8.5 - np.log(resistance - 300)
     t = np.exp(
         - 139.632031674157
         + 892.022239465635 * x
