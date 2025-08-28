@@ -6,14 +6,16 @@ import logging
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
-import matplotlib.style as mplstyle
 import TemperatureCalibration
 import MultiPyVu as mpv
 from collections import deque
 import numpy as np
 import time
 import os
-from multiprocessing import Value
+import pandas
+from pymeasure.instruments.srs import SR830
+from zhinst.toolkit import Session
+
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -104,9 +106,9 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
                          temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
 
-    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#d53e3eff"]
 
-    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
+    #colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
     max_recent_points = 100  # Maximum points in recent deque
     buffer_threshold = 200  # When to downsample buffer points
 
@@ -144,6 +146,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[0].set_ylabel('Resistance [Ohm]')
     axs[1].set_ylabel('Calibrated temperature [K]')
     axs[1].set_yscale('log')
+    axs[0].set_yscale('log')
     axs[1].set_xlabel('Time [s]')
     axs[0].set_title(os.path.basename(os.getcwd()))
     axs[0].grid(False)
@@ -164,7 +167,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         }
     } for ch in channels}
 
-    axs[0].legend(loc='lower right')
+    axs[0].legend(loc='upper left')
 
     def downsample_buffer(buffer_data):
         """Downsample buffer data by averaging adjacent pairs of points"""
@@ -339,6 +342,194 @@ def log_data(logger, sample_data, temperature_calibration, delimiter):
     logger.info(logline)
 
 
+def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
+    ip_address = "192.168.0.12"
+    mpv_client = mpv.Client()
+
+    if measurements_per_scan > 100:
+        measurements_per_scan = 100
+
+    try:
+        mpv_client.open()
+    except:
+        print("LS Channel A : Could not connect to PPMS")
+
+    while debug:
+        time.sleep(0.1)
+        data = acquire_samples_debug_ppms(False, measurements_per_scan, 'A',
+                                          _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+        queue.put((13, data))
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+    instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+    while True:
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+        sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, 'A',
+                                           _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+        queue.put((13, sample_data))
+
+
+def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
+
+    current_setting_resistor = 2382
+    wire_resistance_roundtrip = 30
+    preamp_gain = 10000
+
+    mpv_client = mpv.Client()
+    try:
+        mpv_client.open()
+    except:
+        print("SR830 : Could not connect to PPMS")
+
+    while debug:
+        time.sleep(0.1)
+        data = acquire_samples_debug_ppms(False, measurements_per_scan, 'A',
+                                          _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+        queue.put((14, data))
+        time.sleep(0.1)
+
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+    lia = SR830("GPIB0::9::INSTR")
+
+    # Set the lock-in amplifier parameters
+    # lia.frequency = 1000  # Set the lock-in frequency to 1 kHz
+    # lia.sensitivity = 1e-6  # Set the sensitivity to 1 µV
+    # lia.time_constant = 1e-3  # Set the time constant to 1 ms
+
+    while True:
+        if thread_stop_indicator.value:
+            lia.disconnect()
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+        data = pandas.DataFrame(index=range(measurements_per_scan),
+                                columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
+
+        for i in range(measurements_per_scan):
+            current_timestamp = datetime.now()
+            timedelta = current_timestamp - _time_at_beginning_of_experiment
+
+            x = lia.x / preamp_gain
+            y = lia.y / preamp_gain
+            v = lia.sine_voltage
+            current = v / (current_setting_resistor + wire_resistance_roundtrip)
+            resistance = x / current
+            quadrature = y / current
+            power = current * current * x
+
+            try:
+                field, field_status = mpv_client.get_field()
+            except:
+                field = field_status = np.nan
+
+            try:
+                temp, temp_status = mpv_client.get_temperature()
+            except:
+                temp = temp_status = np.nan
+
+            # Insert data into the pre-allocated DataFrame
+            data.iloc[i] = [
+                current_timestamp,
+                timedelta.total_seconds(),
+                resistance,
+                quadrature,
+                power,
+                field,
+                temp
+            ]
+            time.sleep(0.1)
+
+        queue.put((14, data))
+
+
+def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
+    device_id = 'dev30987'
+    server_host = '192.168.156.14'
+
+    current_setting_resistor = 0
+    wire_resistance_roundtrip = 500
+
+    mpv_client = mpv.Client()
+    try:
+        mpv_client.open()
+    except:
+        print("Zurich : Could not connect to PPMS")
+
+    while debug:
+        time.sleep(0.1)
+        data = acquire_samples_debug_ppms(False, measurements_per_scan, 'A',
+                                          _time_at_beginning_of_experiment, _mpv_client=mpv_client)
+        queue.put((15, data))
+        time.sleep(0.1)
+
+        if thread_stop_indicator.value:
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+    # Connect to the device
+    session = Session(server_host)
+    device = session.devices[device_id]
+
+    while True:
+        if thread_stop_indicator.value:
+            session.disconnect_device(device_id)
+
+            mpv_client.close_client()
+            mpv_client.close_server()
+            break
+
+        device.demods[0].sample.subscribe()
+        time.sleep(measurements_per_scan / 5)
+        current_timestamp = datetime.now()
+        timedelta = current_timestamp - _time_at_beginning_of_experiment
+        time.sleep(measurements_per_scan / 5)
+        device.demods[0].sample.unsubscribe()
+
+        data = session.poll()
+        demod_sample = data[device.demods[0].sample]
+
+        try:
+            field, field_status = mpv_client.get_field()
+        except:
+            field = field_status = np.nan
+
+        try:
+            temp, temp_status = mpv_client.get_temperature()
+        except:
+            temp = temp_status = np.nan
+
+        output_voltage = device.sigouts[0].amplitudes[1]()
+        current = output_voltage / (current_setting_resistor + wire_resistance_roundtrip)
+
+        data = pandas.DataFrame(index=range(len(demod_sample['x'])),
+                                columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
+
+        data["Timestamp"] = current_timestamp
+        data["Elapsed time"] = timedelta.total_seconds()
+        data["R"] = demod_sample['x'] / current
+        data["iR"] = demod_sample['y'] / current
+        data["P"] = demod_sample['x'] * current
+
+        data["PPMS_B"] = field
+        data["PPMS_T"] = temp
+
+        queue.put((15, data))
+        time.sleep(0.1)
+
+
 def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, configure_input=False,
                         ip_address="192.168.0.12", thread_stop_indicator=Value('b', False),
                         debug=False):
@@ -381,6 +572,7 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                 for channel in channels:
                     instrument_372.set_scanner_status(input_channel=channel, status=False)
                     time.sleep(4)
+                    time.sleep(10)
                     sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, channel,
                                                   _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                     queue.put((channel, sample_data))
@@ -420,10 +612,10 @@ def main(path):
     with open(f"{_filepath}/settings.json") as settingsFile:
         settingsJSON = json.load(settingsFile)
         print(settingsJSON)
-    _lakeshore_channels = settingsJSON["Channels"]
+    _channels = settingsJSON["Channels"]
     _debug=settingsJSON["debug"]
     _measurements_per_scan = settingsJSON["samplerate"]
-    
+
     _temperature_calibrations = []
     for calString in settingsJSON["calibration"]:
         if calString == "None":
@@ -436,10 +628,47 @@ def main(path):
     ls_data_queue = Queue()
     # used to terminate the reader if visualizer is closed
     shared_stop_indicator = Value('b', False)
-    visualizer_process = start_data_visualizer(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, _measurements_per_scan, _filepath, _temperature_calibrations,
+
+    _lakeshore_scanner_channels = []
+    for channel in _channels:
+        _lakeshore_scanner_channels.append(channel)
+
+    if 13 in _channels:
+        _lakeshore_scanner_channels.remove(13)
+        ls_chan_a_process = Process(target=read_lakeshore_channel_a, args=(ls_data_queue,
+                                                                           time_at_beginning_of_experiment,
+                                                                           _measurements_per_scan,
+                                                                           shared_stop_indicator, _debug))
+        ls_chan_a_process.daemon = True
+        ls_chan_a_process.start()
+
+    if 14 in _channels:
+        _lakeshore_scanner_channels.remove(14)
+        sr830_process = Process(target=read_sr830, args=(ls_data_queue, time_at_beginning_of_experiment,
+                                                         _measurements_per_scan, shared_stop_indicator, _debug))
+        sr830_process.daemon = True
+        sr830_process.start()
+
+    if 15 in _channels:
+        _lakeshore_scanner_channels.remove(15)
+        mfli_process = Process(target=read_zurich, args=(ls_data_queue, time_at_beginning_of_experiment,
+                                                         _measurements_per_scan, shared_stop_indicator, _debug))
+        mfli_process.daemon = True
+        mfli_process.start()
+
+    visualizer_process = start_data_visualizer(_channels, ls_data_queue, time_at_beginning_of_experiment,
+                                               _measurements_per_scan, _filepath, _temperature_calibrations,
                                                save_raw_data=_save_raw_data,
                                                thread_stop_indicator=shared_stop_indicator)
-    read_multi_channel(_lakeshore_channels, ls_data_queue, time_at_beginning_of_experiment, _measurements_per_scan, debug=_debug,
-                        thread_stop_indicator=shared_stop_indicator)
+
+    if len(_lakeshore_scanner_channels) > 0:
+        read_multi_channel(_lakeshore_scanner_channels, ls_data_queue, time_at_beginning_of_experiment,
+                           _measurements_per_scan, debug=_debug, thread_stop_indicator=shared_stop_indicator)
+    else:
+        while not shared_stop_indicator:
+            time.sleep(0.5)
+
     visualizer_process.join()
+    ls_chan_a_process.join()
+    sr830_process.join()
 

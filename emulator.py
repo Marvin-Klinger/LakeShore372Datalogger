@@ -63,8 +63,15 @@ def acquire_samples_debug_ppms(model372, number_of_samples, channel_number, time
             "power": i * rng.random() * 1E-6 + 6E-6,
         }
 
-        field, field_status = _mpv_client.get_field()
-        temp, temp_status = _mpv_client.get_temperature()
+        try:
+            field, field_status = _mpv_client.get_field()
+        except:
+            field = field_status = np.nan
+
+        try:
+            temp, temp_status = _mpv_client.get_temperature()
+        except:
+            temp = temp_status = np.nan
 
         # Insert data into the pre-allocated DataFrame
         data.iloc[i] = [

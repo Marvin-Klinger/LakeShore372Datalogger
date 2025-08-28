@@ -87,10 +87,11 @@ def acquire_samples_ppms(model372, number_of_samples, channel_number, time_at_st
             current_timestamp,
             timedelta.total_seconds(),
             readings['resistance'],
-            readings['quadrature'],
+            np.nan,
             readings['power'],
             field,
             temp
         ]
+        time.sleep(0.1)
 
     return data

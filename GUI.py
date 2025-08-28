@@ -84,14 +84,14 @@ if __name__ == "__main__":
 
     # Needed to evaluate Checkbox-states
     channels = []
-    for i in range(0, 4):
+    for i in range(0, 15):
         channels.append(IntVar())
 
     debugState = IntVar()
 
     calibrations = []
-    for i in range(0, 4):
-        calibrations.append(StringVar())
+    for i in range(0, 15):
+        calibrations.append(StringVar(value="None"))
 
     if os.name == 'nt': #First call is needed for releasing. Later one is needed to make it work on Posix systems. They don't work together
         multiprocessing.freeze_support()
@@ -111,9 +111,18 @@ if __name__ == "__main__":
 
     excludedPolynomials = ['np', 'os', 'pd', 'plt', 'askdirectory', 'askopenfilename', 'calibrate_all_files_in_dir', 'show_plot']
     polynomials = [p for p in dir(TemperatureCalibration) if not(p.startswith('__') or (p in excludedPolynomials))]
-    for i in range(0, 4):
-        ttk.Checkbutton(checkBoxFrame, text=f"Ch {i+1}", variable=channels[i], onvalue=i+1).grid(column=i, row=4)
+    for i in range(0, 3):
+        ttk.Checkbutton(checkBoxFrame, text=f"LS_{i+1}", variable=channels[i], onvalue=i+1).grid(column=i, row=4)
         ttk.OptionMenu(checkBoxFrame, calibrations[i], "None", "None", *polynomials).grid(column=i, row=5)
+
+    ttk.Checkbutton(checkBoxFrame, text="LS_A", variable=channels[3], onvalue=13).grid(column=3, row=4)
+    ttk.OptionMenu(checkBoxFrame, calibrations[12], "None", "None", *polynomials).grid(column=3, row=5)
+
+    ttk.Checkbutton(checkBoxFrame, text="SR830", variable=channels[4], onvalue=14).grid(column=4, row=4)
+    ttk.OptionMenu(checkBoxFrame, calibrations[13], "None", "None", *polynomials).grid(column=4, row=5)
+
+    ttk.Checkbutton(checkBoxFrame, text="MFLI", variable=channels[5], onvalue=15).grid(column=5, row=4)
+    ttk.OptionMenu(checkBoxFrame, calibrations[14], "None", "None", *polynomials).grid(column=5, row=5)
 
     ttk.Label(frm, text="Samplerate").grid(column=0, row=5)
     sampleRateField = Entry(frm, validate='key', validatecommand=(frm.register(lambda x: x.isdigit() or not x), '%P'), width=3)
