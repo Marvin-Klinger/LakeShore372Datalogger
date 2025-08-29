@@ -456,10 +456,11 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
 
 def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
     device_id = 'dev30987'
-    server_host = '192.168.156.14'
+    server_host = '192.168.156.14'#'127.0.0.1'#
 
-    current_setting_resistor = 0
-    wire_resistance_roundtrip = 500
+    current_setting_resistor = 9000
+    wire_resistance_roundtrip = 108
+    preamp_gain = 2000
 
     mpv_client = mpv.Client()
     try:
@@ -492,14 +493,18 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
             break
 
         device.demods[0].sample.subscribe()
-        time.sleep(measurements_per_scan / 5)
+        time.sleep(measurements_per_scan / 4)
         current_timestamp = datetime.now()
         timedelta = current_timestamp - _time_at_beginning_of_experiment
-        time.sleep(measurements_per_scan / 5)
+        time.sleep(measurements_per_scan / 4)
         device.demods[0].sample.unsubscribe()
 
         data = session.poll()
-        demod_sample = data[device.demods[0].sample]
+        try:
+            demod_sample = data[device.demods[0].sample]
+        except:
+            print("Error getting data from MFLI, retrying...")
+            continue
 
         try:
             field, field_status = mpv_client.get_field()
@@ -512,6 +517,7 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
             temp = temp_status = np.nan
 
         output_voltage = device.sigouts[0].amplitudes[1]()
+        output_voltage = output_voltage / np.sqrt(2)
         current = output_voltage / (current_setting_resistor + wire_resistance_roundtrip)
 
         data = pandas.DataFrame(index=range(len(demod_sample['x'])),
@@ -519,9 +525,9 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
 
         data["Timestamp"] = current_timestamp
         data["Elapsed time"] = timedelta.total_seconds()
-        data["R"] = demod_sample['x'] / current
-        data["iR"] = demod_sample['y'] / current
-        data["P"] = demod_sample['x'] * current
+        data["R"] = demod_sample['x'] / (current * preamp_gain)
+        data["iR"] = demod_sample['y'] / (current * preamp_gain)
+        data["P"] = demod_sample['x'] * current / preamp_gain
 
         data["PPMS_B"] = field
         data["PPMS_T"] = temp
