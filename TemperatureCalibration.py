@@ -585,6 +585,32 @@ def cal_UTQ16_extendedRange(resistance):
         return np.nan
     return t
 
+def cal_UTQ17(resistance):
+    if resistance > 62451:
+        return np.nan
+    if resistance < 2242:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1400)
+    t = np.exp(
+        -3.51464879768418
+        - 3.27179626073405 * x
+        + 20.8954733467575 * x ** 2
+        - 62.9579311853659 * x ** 3
+        + 119.244737053663 * x ** 4
+        - 148.399563409197 * x ** 5
+        + 125.457051340184 * x ** 6
+        - 73.1869922865527 * x ** 7
+        + 29.436095236198 * x ** 8
+        - 8.00423064377658 * x ** 9
+        + 1.4031890089611 * x ** 10
+        - 0.142962649696399 * x ** 11
+        + 0.00642479660765235 * x ** 12)
+
+    if t < 0.030 or t > 2.05:
+        return np.nan
+    return t
+
+
 def cal_UTCC_1(resistance):
     if resistance > 1818:
         return np.nan
