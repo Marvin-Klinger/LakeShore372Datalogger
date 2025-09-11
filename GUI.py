@@ -1,4 +1,4 @@
-from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar, StringVar
+from tkinter import Tk, ttk, filedialog, Text, Entry, Frame, messagebox, IntVar, StringVar, messagebox
 import os
 import json
 #from multiprocessing import Process, freeze_support
@@ -8,6 +8,7 @@ import TemperatureCalibration
 import MultiChannelReaderProcess
 import numpy
 import MultiPyVu as mpv
+import ctypes
 
 def fileBrowsing():       #Open filebrowser and set
     filepath = filedialog.askdirectory()
@@ -76,7 +77,11 @@ def emptyFunction():
 
 if __name__ == "__main__":
 
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        messagebox.showwarning("Warning", "Please run this program and MultiVue as Admin")
+
     root = Tk()
+
     frm = ttk.Frame(root)
     frm.grid()
 
