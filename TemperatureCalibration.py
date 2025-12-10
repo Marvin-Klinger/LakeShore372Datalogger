@@ -798,6 +798,33 @@ def cal_UTCC_2A(resistance):
         return np.nan
     return t
 
+def cal_UTC_1k_C02(resistance):
+    if resistance > 8616.32192:
+        return np.nan
+    if resistance < 1337.7537:
+        return np.nan
+    x = 12.0 - np.log(resistance - 900)
+    t = np.exp(
+        - 11698.1555265018
+        + 22602.0502961486 * x
+        - 18128.0732714504 * x ** 2
+        + 7585.49617050611 * x ** 3
+        - 1711.71716413143 * x ** 4
+        + 253.823104452278 * x ** 5
+        - 94.3066229139009 * x ** 6
+        + 49.6550992753733 * x ** 7
+        - 15.2864906474901 * x ** 8
+        + 2.75152698210421 * x ** 9
+        - 0.293966483661329 * x ** 10
+        + 0.0174277925167132 * x ** 11
+        - 4.44110728714338E-4 * x ** 12)
+
+    if t < 0.04 or t > 8:
+        return np.nan
+    return t
+
+
+
 
 def cal_ht1(x):
     if x < 4600:
