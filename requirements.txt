@@ -3,3 +3,6 @@ pandas
 lakeshore
 matplotlib
 UliEngineering
+MultiPyVu
+pymeasure
+zhinst
