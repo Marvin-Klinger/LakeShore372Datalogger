@@ -15,7 +15,19 @@ import os
 import pandas
 from pymeasure.instruments.srs import SR830
 from zhinst.toolkit import Session
+from zhinst.core import ziDiscovery
+import tkinter as tk
+from tkinter import ttk
+from tkinter import simpledialog
+import webbrowser
 
+LakeShoreCommunicationMethod = {
+  "tbd": 0,
+  "usb": 1,
+  "ip": 2
+}
+LakeShoreIPAddress = "192.168.0.12"
+ActiveLakeShoreCommunicationMethod = LakeShoreCommunicationMethod["usb"]
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
@@ -44,7 +56,12 @@ def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_clien
                                                               current,
                                                               Model372.AutoRangeMode.OFF, False,
                                                               Model372.InputSensorUnits.OHMS, range)
-                instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+                ip_address = LakeShoreIPAddress
+                if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
+                    instrument_372 = Model372(57600)
+                if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
+                    instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+
                 instrument_372.configure_input(channel, channel_settings)
                 instrument_372.set_scanner_status(input_channel=channel, status=False)
                 time.sleep(5)
@@ -343,7 +360,6 @@ def log_data(logger, sample_data, temperature_calibration, delimiter):
 
 
 def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
-    ip_address = "192.168.0.12"
     mpv_client = mpv.Client()
 
     if measurements_per_scan > 100:
@@ -364,7 +380,12 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
             mpv_client.close_server()
             break
 
-    instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+    ip_address = LakeShoreIPAddress
+    if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
+        instrument_372 = Model372(57600)
+    if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
+        instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+
     while True:
         if thread_stop_indicator.value:
             mpv_client.close_client()
@@ -460,13 +481,38 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
 
     current_setting_resistor = 9000
     wire_resistance_roundtrip = 108
-    preamp_gain = 2000
+    preamp_gain = 1
+
+    devices = list_local_zi_devices()
+    if not devices:
+        print("No Zurich Instruments devices found.")
+        return
+    else:
+        dev_id, serverhost = select_device_dialog(devices)
+        if dev_id is None:
+            print("No device selected.")
+        else:
+            print(f"Selected device: {dev_id}")
+            device_id = dev_id
+            server_host = serverhost
+
+    value = ask_for_resistor(
+        title="MFLI setup",
+        prompt="Enter the value of your current limiting resistor in Ohms",
+        min_value=1,
+        max_value=100000000000,
+    )
+
+    if value is None:
+        print("User cancelled.")
+    else:
+        print(f"User entered: {value} Ohms")
 
     mpv_client = mpv.Client()
     try:
         mpv_client.open()
     except:
-        print("Zurich : Could not connect to PPMS")
+        print("Zurich : Could not connect to PPMS (non fatal, main thread is connected)")
 
     while debug:
         time.sleep(0.1)
@@ -483,6 +529,9 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
     # Connect to the device
     session = Session(server_host)
     device = session.devices[device_id]
+
+    print("Zurich : Session and Device created, launching browser...")
+    webbrowser.open(f'http://{server_host}')
 
     while True:
         if thread_stop_indicator.value:
@@ -548,7 +597,11 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
         print("Could not connect to PPMS")
 
     if not debug:
-        instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+        ip_address = LakeShoreIPAddress
+        if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
+            instrument_372 = Model372(57600)
+        if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
+            instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
         if configure_input:
             settings_thermometer = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
                                                               Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
@@ -678,3 +731,103 @@ def main(path):
     ls_chan_a_process.join()
     sr830_process.join()
 
+
+def list_local_zi_devices():
+    """Return a dict of all locally discovered Zurich Instruments devices."""
+    discovery = ziDiscovery()
+    dev_ids = discovery.findAll()
+
+    devices = {}
+    for dev_id in dev_ids:
+        props = discovery.get(dev_id)
+        devices[dev_id] = props
+    return devices
+
+
+def select_device_dialog(devices):
+    """
+    Show a popup window to select one device.
+
+    `devices` is a dict: {dev_id: props_dict}
+    Returns (dev_id, server_host) or (None, None).
+    """
+    selected = {"dev_id": None, "server_host": None}
+
+    root = tk.Tk()
+    root.title("Select Zurich Instruments Device")
+    root.resizable(False, False)
+
+    tk.Label(root, text="Select a device:").pack(padx=10, pady=(10, 5))
+
+    frame = tk.Frame(root)
+    frame.pack(padx=10, pady=5, fill="both", expand=True)
+
+    scrollbar = tk.Scrollbar(frame)
+    scrollbar.pack(side="right", fill="y")
+
+    listbox = tk.Listbox(frame, height=8, yscrollcommand=scrollbar.set)
+    listbox.pack(side="left", fill="both", expand=True)
+
+    scrollbar.config(command=listbox.yview)
+
+    # Map listbox index -> (dev_id, server_host)
+    index_to_dev = []
+    for dev_id, props in devices.items():
+        server_addr = props.get("serveraddress", "unknown")
+        display_text = f"{dev_id}  [{server_addr}]"
+        listbox.insert(tk.END, display_text)
+        index_to_dev.append((dev_id, server_addr))
+
+    def on_ok(event=None):
+        sel = listbox.curselection()
+        if sel:
+            idx = sel[0]
+            dev_id, server_host = index_to_dev[idx]
+            selected["dev_id"] = dev_id
+            selected["server_host"] = server_host
+        root.destroy()
+
+    def on_cancel():
+        selected["dev_id"] = None
+        selected["server_host"] = None
+        root.destroy()
+
+    btn_frame = tk.Frame(root)
+    btn_frame.pack(padx=10, pady=(5, 10))
+
+    ok_btn = ttk.Button(btn_frame, text="OK", command=on_ok)
+    ok_btn.pack(side="left", padx=5)
+
+    cancel_btn = ttk.Button(btn_frame, text="Cancel", command=on_cancel)
+    cancel_btn.pack(side="left", padx=5)
+
+    listbox.bind("<Double-Button-1>", on_ok)
+    root.bind("<Return>", on_ok)
+    root.protocol("WM_DELETE_WINDOW", on_cancel)
+
+    root.mainloop()
+    return selected["dev_id"], selected["server_host"]
+
+
+def ask_for_resistor(title="Input required",
+                   prompt="Please enter a number:",
+                   min_value=None,
+                   max_value=None):
+    """
+    Show a dialog asking the user for an integer.
+
+    Returns the integer value, or None if the user cancels.
+    """
+    root = tk.Tk()
+    root.withdraw()  # Hide the main window
+
+    number = simpledialog.askinteger(
+        title,
+        prompt,
+        parent=root,
+        minvalue=min_value,
+        maxvalue=max_value,
+    )
+
+    root.destroy()
+    return number
