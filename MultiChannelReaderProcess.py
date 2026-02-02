@@ -19,6 +19,7 @@ from zhinst.core import ziDiscovery
 import tkinter as tk
 from tkinter import ttk
 from tkinter import simpledialog
+import webbrowser
 
 LakeShoreCommunicationMethod = {
   "tbd": 0,
@@ -57,7 +58,7 @@ def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_clien
                                                               Model372.InputSensorUnits.OHMS, range)
                 ip_address = LakeShoreIPAddress
                 if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
-                    instrument_372 = Model372()
+                    instrument_372 = Model372(57600)
                 if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
                     instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
 
@@ -381,7 +382,7 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
 
     ip_address = LakeShoreIPAddress
     if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
-        instrument_372 = Model372()
+        instrument_372 = Model372(57600)
     if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
         instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
 
@@ -529,6 +530,9 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
     session = Session(server_host)
     device = session.devices[device_id]
 
+    print("Zurich : Session and Device created, launching browser...")
+    webbrowser.open(f'http://{server_host}')
+
     while True:
         if thread_stop_indicator.value:
             session.disconnect_device(device_id)
@@ -593,7 +597,11 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
         print("Could not connect to PPMS")
 
     if not debug:
-        instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
+        ip_address = LakeShoreIPAddress
+        if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
+            instrument_372 = Model372(57600)
+        if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["ip"]:
+            instrument_372 = Model372(baud_rate=None, ip_address=ip_address)
         if configure_input:
             settings_thermometer = Model372InputSetupSettings(Model372.SensorExcitationMode.CURRENT,
                                                               Model372.MeasurementInputCurrentRange.RANGE_1_NANO_AMP,
