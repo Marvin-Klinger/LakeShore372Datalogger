@@ -6,3 +6,4 @@ UliEngineering
 MultiPyVu
 pymeasure
 zhinst
+scipy
