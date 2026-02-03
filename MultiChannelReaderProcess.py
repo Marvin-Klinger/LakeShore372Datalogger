@@ -1,11 +1,14 @@
 from multiprocessing import Process, Queue, Value
+import queue as qu
 from LS_Datalogger2_v2 import acquire_samples_ppms
 from emulator import acquire_samples_debug_ppms
 from lakeshore import Model372, Model372InputSetupSettings
 import logging
 import json
 from datetime import datetime
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use("qt5agg")
 import TemperatureCalibration
 import MultiPyVu as mpv
 from collections import deque
@@ -31,6 +34,7 @@ ActiveLakeShoreCommunicationMethod = LakeShoreCommunicationMethod["usb"]
 
 def on_close(thread_stop_indicator):
     thread_stop_indicator.value = True
+    print(f"main window exiting, sent signal to terminate data handlers: {thread_stop_indicator.value}")
 
 def auto_cal(_filepath, ip_address, _time_at_beginning_of_experiment, _mpv_client, channels):
     number_of_samples = 100
@@ -120,6 +124,15 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     return lgr
 
 
+def get_label(ch):
+    if ch == 13:
+        return "LS Ch A"
+    elif ch == 14:
+        return "SR830"
+    elif ch == 15:
+        return "MFLI"
+    return f"LS Ch {ch}"
+
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
                          temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
 
@@ -174,8 +187,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         'resistance': {
             'historical': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
             'buffer': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
-            'recent': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2,
-                                  label=f"Ch {ch}")[0]
+            'recent': axs[0].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2, label=get_label(ch))[0]
         },
         'temperature': {
             'historical': axs[1].plot([], [], color=colors[ch - 1], linestyle='', marker='.', markersize=2)[0],
@@ -376,9 +388,18 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
                                           _time_at_beginning_of_experiment, _mpv_client=mpv_client)
         queue.put((13, data))
         if thread_stop_indicator.value:
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
     ip_address = LakeShoreIPAddress
     if ActiveLakeShoreCommunicationMethod == LakeShoreCommunicationMethod["usb"]:
@@ -388,9 +409,18 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
 
     while True:
         if thread_stop_indicator.value:
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
         sample_data = acquire_samples_ppms(instrument_372, measurements_per_scan, 'A',
                                            _time_at_beginning_of_experiment, _mpv_client=mpv_client)
@@ -399,15 +429,34 @@ def read_lakeshore_channel_a(queue, _time_at_beginning_of_experiment, measuremen
 
 def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, thread_stop_indicator=Value('b', False), debug=False):
 
-    current_setting_resistor = 2382
+    current_setting_resistor = 9000
     wire_resistance_roundtrip = 30
-    preamp_gain = 10000
+    preamp_gain = 1 #if an external preamp is used, specify the gain here
+    gpib_address = 9 #default GPIB address is 9
 
     mpv_client = mpv.Client()
     try:
         mpv_client.open()
     except:
         print("SR830 : Could not connect to PPMS")
+
+    value = ask_for_resistor(
+        title="SR830 setup",
+        prompt="Enter the value of your current limiting resistor in Ohms",
+        min_value=1,
+        max_value=100000000000,
+    )
+    if value is not None:
+        current_setting_resistor = value
+
+    value = ask_for_resistor(
+        title="SR830 setup",
+        prompt="Enter the GPIB address of the SR830",
+        min_value=0,
+        max_value=1000,
+    )
+    if value is not None:
+        gpib_address = value
 
     while debug:
         time.sleep(0.1)
@@ -417,11 +466,20 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
         time.sleep(0.1)
 
         if thread_stop_indicator.value:
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
-    lia = SR830("GPIB0::9::INSTR")
+    lia = SR830(f"GPIB0::{gpib_address}::INSTR")
 
     # Set the lock-in amplifier parameters
     # lia.frequency = 1000  # Set the lock-in frequency to 1 kHz
@@ -431,9 +489,18 @@ def read_sr830(queue, _time_at_beginning_of_experiment, measurements_per_scan, t
     while True:
         if thread_stop_indicator.value:
             lia.disconnect()
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
         data = pandas.DataFrame(index=range(measurements_per_scan),
                                 columns=["Timestamp", "Elapsed time", "R", "iR", "P", "PPMS_B", "PPMS_T"])
@@ -480,7 +547,7 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
     server_host = '192.168.156.14'#'127.0.0.1'#
 
     current_setting_resistor = 9000
-    wire_resistance_roundtrip = 108
+    wire_resistance_roundtrip = 30
     preamp_gain = 1
 
     devices = list_local_zi_devices()
@@ -503,10 +570,8 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
         max_value=100000000000,
     )
 
-    if value is None:
-        print("User cancelled.")
-    else:
-        print(f"User entered: {value} Ohms")
+    if value is not None:
+        current_setting_resistor = value
 
     mpv_client = mpv.Client()
     try:
@@ -522,9 +587,18 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
         time.sleep(0.1)
 
         if thread_stop_indicator.value:
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
     # Connect to the device
     session = Session(server_host)
@@ -536,10 +610,18 @@ def read_zurich(queue, _time_at_beginning_of_experiment, measurements_per_scan, 
     while True:
         if thread_stop_indicator.value:
             session.disconnect_device(device_id)
-
-            mpv_client.close_client()
-            mpv_client.close_server()
-            break
+            try:
+                mpv_client.close_client()
+            except mpv.exceptions.SocketError:
+                pass
+            while True:
+                try:
+                    item = queue.get(timeout=0.1)
+                    if item is None:
+                        break
+                except qu.Empty:
+                    break
+            return
 
         device.demods[0].sample.subscribe()
         time.sleep(measurements_per_scan / 4)
@@ -623,9 +705,18 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                                               _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                 queue.put((channel, sample_data))
                 if thread_stop_indicator.value:
-                    mpv_client.close_client()
-                    mpv_client.close_server()
-                    break
+                    try:
+                        mpv_client.close_client()
+                    except mpv.exceptions.SocketError:
+                        pass
+                    while True:
+                        try:
+                            item = queue.get(timeout=0.1)
+                            if item is None:
+                                break
+                        except qu.Empty:
+                            break
+                    return
         else:
             while True:
                 for channel in channels:
@@ -636,21 +727,39 @@ def read_multi_channel(channels, queue, _time_at_beginning_of_experiment, measur
                                                   _time_at_beginning_of_experiment, _mpv_client=mpv_client)
                     queue.put((channel, sample_data))
                 if thread_stop_indicator.value:
-                    mpv_client.close_client()
-                    mpv_client.close_server()
-                    break
+                    try:
+                        mpv_client.close_client()
+                    except mpv.exceptions.SocketError:
+                        pass
+                    while True:
+                        try:
+                            item = queue.get(timeout=0.1)
+                            if item is None:
+                                break
+                        except qu.Empty:
+                            break
+                    return
     else:
         while True:
-            time.sleep(0.1)
+            time.sleep(1)
             for channel in channels:
                 sample_data = acquire_samples_debug_ppms(False, measurements_per_scan, channel, _time_at_beginning_of_experiment, _mpv_client = mpv_client)
                 #print(queue.qsize())
                 queue.put((channel, sample_data))
 
             if thread_stop_indicator.value:
-                mpv_client.close_client()
-                mpv_client.close_server()
-                break
+                try:
+                    mpv_client.close_client()
+                except mpv.exceptions.SocketError:
+                    pass
+                while True:
+                    try:
+                        item = queue.get(timeout=0.1)
+                        if item is None:
+                            break
+                    except qu.Empty:
+                        break
+                return
 
 def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath, temperature_calibrations, delimiter=',',
                           save_raw_data=True,
@@ -658,7 +767,7 @@ def start_data_visualizer(channels, queue, _time_at_beginning_of_experiment, mea
     visualizer = Process(target=visualize_n_channels, args=(channels, queue, _time_at_beginning_of_experiment,
                                                                 measurements_per_scan, filepath, temperature_calibrations, delimiter, thread_stop_indicator))
     visualizer.daemon = True
-    visualizer.start()  # Launch reader_p() as another proc
+    visualizer.start()
     return visualizer
 
 def nullFunction(x):
@@ -727,9 +836,24 @@ def main(path):
         while not shared_stop_indicator:
             time.sleep(0.5)
 
+    print("LS reader stopped")
     visualizer_process.join()
-    ls_chan_a_process.join()
-    sr830_process.join()
+    print("visualizer stopped")
+
+    if 13 in _channels:
+        print("waiting for LS aux reader stop")
+        ls_chan_a_process.join()
+        print("LS aux reader stopped")
+
+    if 14 in _channels:
+        sr830_process.join()
+        print("SR reader stopped")
+
+    if 15 in _channels:
+        mfli_process.join()
+        print("MFLI reader stopped")
+
+    print("exit complete")
 
 
 def list_local_zi_devices():

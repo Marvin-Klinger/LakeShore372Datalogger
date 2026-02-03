@@ -17,7 +17,7 @@ def fileBrowsing():       #Open filebrowser and set
     fileField.configure(width=len(fileField.get()))
     return
 
-#When user selected a directory, check if it already contains a settingfile
+# When user selected a directory, check if it already contains a settingfile
 def validateConfig(dirpath):
     global filepath 
     filepath = dirpath
@@ -81,6 +81,7 @@ if __name__ == "__main__":
         messagebox.showwarning("Warning", "Please run this program and MultiVue as Admin")
 
     root = Tk()
+    root.title("ADR Datalogger setup")
 
     frm = ttk.Frame(root)
     frm.grid()
@@ -102,12 +103,12 @@ if __name__ == "__main__":
         multiprocessing.freeze_support()
     else:
         multiprocessing.set_start_method('spawn', force=True)
-    
+
     ttk.Label(frm, text="Filepath").grid(column=0, row=2)
     fileField = Entry(frm, validate='key', validatecommand=(frm.register(validateConfig), '%P'))
     fileField.grid(column=1, row=2)
     ttk.Button(frm, text="Explore", command=fileBrowsing).grid(column=2, row=2, sticky='w')
-    importSettingsBtn = ttk.Button(frm, text="Import settings", command=readSettings) 
+    importSettingsBtn = ttk.Button(frm, text="Import settings", command=readSettings)
 
     #Create Checkboxes
     ttk.Label(frm, text="Channels").grid(column=0, row=4)
@@ -133,8 +134,8 @@ if __name__ == "__main__":
     sampleRateField = Entry(frm, validate='key', validatecommand=(frm.register(lambda x: x.isdigit() or not x), '%P'), width=3)
     sampleRateField.grid(column=1, row=5, columnspan=1, sticky='w')
     sampleRateField.insert(0, "73")
-    
-    
+
+
     startButton = ttk.Button(frm, text="START", command=writeSettings)
     startButton.grid(column=0, row=6, columnspan=2)
 

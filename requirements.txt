@@ -7,3 +7,4 @@ MultiPyVu
 pymeasure
 zhinst
 scipy
+PyQt5
