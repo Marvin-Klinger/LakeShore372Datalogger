@@ -142,4 +142,6 @@ if __name__ == "__main__":
     checkBox = ttk.Checkbutton(frm, text="Use fake data", variable=debugState, onvalue=1)
     checkBox.grid(column=0, row=7, columnspan=1)
 
+    root.focus_force()
+
     root.mainloop()

@@ -78,27 +78,27 @@ def setup_new_logger(channel_number, _time, measurements_per_scan, filepath='./'
     lgr = logging.getLogger(name)
     lgr.setLevel(logging.DEBUG)
     fh = logging.FileHandler(
-        f"{filepath}/Channel {channel_number}.csv")
+        f"{filepath}/{get_label(channel_number)}.csv")
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter('%(message)s')
     fh.setFormatter(frmt)
     lgr.addHandler(fh)
-    lgr.info("Measurement of thermometer resistivity with Lake Shore 372 AC Bridge")
+    lgr.info("Measurement of resistivity with Solidcryo Evo Probe MSN002")
     lgr.info("Data is aggregated with " + str(measurements_per_scan) + " samples for every line of this log.")
-    lgr.info("This file does not contain raw data!")
+    lgr.info("Contact support@solidcryo.com for instructions or questions.")
     lgr.info("Data field names and types:")
     lgr.info(
         "Timestamp" + delimiter +
         "Elapsed_time" + delimiter +
         "Elapsed_time_error" + delimiter +
-        "Thermometer_temperature" + delimiter +
-        "Thermometer_temperature_error" + delimiter +
-        "Resistance_thermometer" + delimiter +
-        "Resistance_thermometer_error" + delimiter +
-        "Quadrature_thermometer" + delimiter +
-        "Quadrature_thermometer_error" + delimiter +
-        "Power_thermometer" + delimiter +
-        "Power_thermometer_error" + delimiter +
+        "Temperature" + delimiter +
+        "Temperature_error" + delimiter +
+        "Resistance" + delimiter +
+        "Resistance_error" + delimiter +
+        "Quadrature" + delimiter +
+        "Quadrature_error" + delimiter +
+        "Power" + delimiter +
+        "Power_error" + delimiter +
         "Field_PPMS" + delimiter +
         "Field_PPMS_error" + delimiter +
         "Temperature_PPMS" + delimiter +
@@ -136,7 +136,8 @@ def get_label(ch):
 def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, measurements_per_scan, filepath,
                          temperature_calibrations, delimiter=',', thread_stop_indicator=Value('b', False)):
 
-    colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#d53e3eff"]
+    #colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff", "#d53e3eff"]
+    colors = ['#e41a1cff', '#377eb8ff', '#984ea3ff', '#ff7f00ff', '#ffbb78ff', '#2ca02cff', '#98df8aff', '#98df8aff', '#d62728ff', '#ff9896ff', '#9467bdff', '#c5b0d5ff', '#8c564bff', '#8c564bff', '#c49c94ff', '#e377c2ff', '#f7b6d2ff', '#7f7f7fff', '#c7c7c7ff', '#c7c7c7ff', '#bcbd22ff', '#dbdb8dff', '#a65628ff', '#f781bfff', '#999999ff']
 
     #colors = ["#2e2e2eff", "#d53e3eff", "#b61fd6ff", "#3674b5ff"]
     max_recent_points = 100  # Maximum points in recent deque
@@ -178,7 +179,7 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
     axs[1].set_yscale('log')
     axs[0].set_yscale('log')
     axs[1].set_xlabel('Time [s]')
-    axs[0].set_title(os.path.basename(os.getcwd()))
+    #axs[0].set_title(os.path.basename(os.getcwd()))
     axs[0].grid(False)
     axs[1].grid(False)
 

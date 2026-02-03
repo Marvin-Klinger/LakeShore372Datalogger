@@ -16,7 +16,7 @@ def acquire_samples_debug(model372, number_of_samples, channel_number, time_at_s
     current_timestamp = datetime.now()
     timedelta = current_timestamp - time_at_startup
     readings = {
-            "resistance": rng.random()*1000 + 6000,
+            "resistance": rng.random()*1000 + 4000,
             "quadrature": rng.random() * 10 + 60,
             "power": rng.random() * 1E-6 + 6E-6,
     }
@@ -27,7 +27,7 @@ def acquire_samples_debug(model372, number_of_samples, channel_number, time_at_s
         current_timestamp = datetime.now()
         timedelta = current_timestamp - time_at_startup
         readings = {
-            "resistance": _ * rng.random() * 1000 + 6000,
+            "resistance": _ * rng.random() * 1000 + 4000,
             "quadrature": _ * rng.random() * 10 + 60,
             "power": _ * rng.random() * 1E-6 + 6E-6,
         }
@@ -58,9 +58,9 @@ def acquire_samples_debug_ppms(model372, number_of_samples, channel_number, time
 
         # Generate debug readings with same random distribution as original
         readings = {
-            "resistance": i * rng.random() * 1000 + 6000,
-            "quadrature": i * rng.random() * 10 + 60,
-            "power": i * rng.random() * 1E-6 + 6E-6,
+            "resistance":  rng.random() * 1000 + 4000,
+            "quadrature":  rng.random() * 10 + 60,
+            "power":  rng.random() * 1E-6 + 6E-6,
         }
 
         try:
