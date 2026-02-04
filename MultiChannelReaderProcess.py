@@ -170,8 +170,10 @@ def visualize_n_channels(channels, queue, _time_at_beginning_of_experiment, meas
         _lgr.propagate = False
         loggers[channel] = _lgr
 
+    title_text = "Datalogger"
+
     # Plot setup - create figure before turning on interactive mode
-    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(10, 8))
+    fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True, figsize=(10, 8), num=title_text)
 
     # Configure axes
     axs[0].set_ylabel('Resistance [Ohm]')

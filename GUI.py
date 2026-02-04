@@ -68,8 +68,18 @@ def writeSettings():
     return
 
 def startProcessing(filepath):
-    with mpv.Server():
+    def run_with_optional_mpv(filepath):
+        try:
+            with mpv.Server():
+                MultiChannelReaderProcess.main(filepath)
+                return  # Success with MPV
+        except:
+            pass  # MPV failed (including internal handling); continue without
+        # Fallback without MPV
+        print("Could not connect to the PPMS, continuing without PPMS connection anyways")
         MultiChannelReaderProcess.main(filepath)
+
+    run_with_optional_mpv(filepath)
     return
 
 def emptyFunction():
@@ -77,8 +87,8 @@ def emptyFunction():
 
 if __name__ == "__main__":
 
-    if not ctypes.windll.shell32.IsUserAnAdmin():
-        messagebox.showwarning("Warning", "Please run this program and MultiVue as Admin")
+    #if not ctypes.windll.shell32.IsUserAnAdmin():
+    #    messagebox.showwarning("Warning", "Please run this program and MultiVue as Admin")
 
     root = Tk()
     root.title("ADR Datalogger setup")
