@@ -1088,6 +1088,34 @@ def cal_UTC_1k_Chip01 (resistance):
     return t
 
 
+def cal_UTC_1k_Chip03 (resistance):
+    if resistance > 7813.9:
+        return np.nan
+    if resistance < 1330.3:
+        return np.nan
+    x = 8 - np.log(resistance - 400)
+    t = np.exp(
+        - 1.37760774714715
+        + 2.22018877188769 * x
+        + 0.470678165617743 * x ** 2
+        + 0.0421223176953872 * x ** 3
+        - 1.11418605924126 * x ** 4
+        - 1.86930603313945 * x ** 5
+        + 5.00777970838502 * x ** 6
+        + 9.0327773615879 * x ** 7
+        - 11.2017340033712 * x ** 8
+        - 16.9144138281245 * x ** 9
+        + 14.9969076154425 * x ** 10
+        + 14.5900690164083 * x ** 11
+        - 11.239625892512 * x ** 12
+        - 4.84243012203922 * x ** 13
+        + 3.58717108317929 * x ** 14)
+
+    if t < 0.0463 or t > 7.8865:
+        return np.nan
+    return t
+
+
 def cal_UTC_1k_Puck01 (resistance):
     if resistance > 11003.0:
         return np.nan
