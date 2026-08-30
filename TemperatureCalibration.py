@@ -1143,6 +1143,30 @@ def cal_UTC_1k_Puck01 (resistance):
         return np.nan
     return t
 
+def cal_UTC_1k_Puck01_0828 (resistance):
+    if resistance > 10202.0:
+        return np.nan
+    if resistance < 1078.0:
+        return np.nan
+    x = 11.2 - np.log(resistance - 1200.0)
+    t = np.exp(
+        + 622.058668443736
+        - 1178.29166105743 * x
+        + 614.750665799994 * x ** 2
+        + 335.913958689578 * x ** 3
+        - 663.527564552265 * x ** 4
+        + 452.572226823275 * x ** 5
+        - 185.533632173765 * x ** 6
+        + 50.9520249538268 * x ** 7
+        - 9.656356614186 * x ** 8
+        + 1.25345419056108 * x ** 9
+        - 0.10677752120399 * x ** 10
+        + 0.00538872402743945 * x ** 11
+        - 1.22244578989287E-4 * x ** 12)
+
+    if t < 0.0242 or t > 45.1:
+        return np.nan
+    return t
 
 def cal_ht1(x):
     if x < 4600:
