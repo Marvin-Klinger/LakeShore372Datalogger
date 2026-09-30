@@ -1062,6 +1062,64 @@ def cal_UTC_1k_C12T(resistance):
         return np.nan
     return t
 
+def cal_UTC_1k_C26T(resistance: float) -> float:
+    R_MIN = 1078.8380
+    R_MAX = 9000.0726
+    if resistance > R_MAX or resistance < R_MIN:
+        return np.nan 
+    x = 11.2 - np.log(resistance - 900)
+    # coefficients gathered from Origin
+    A = [-19239.3530586307,
+         56980.0581132191,
+         -74141.2892254617,
+         55519.7248268763,
+         -26211.5190065324,
+         7942.25368561611,
+         -1446.93168794842,
+         103.837696712703,
+         17.7790315433551,
+         -5.79942042835621,
+         0.714182534176948,
+         -0.0443593347975397,
+         0.00114751364416956]
+    # T = exp(Σ_i A_i * x^i)
+    t = np.exp(np.sum([A[i] * x**i for i in range(len(A))], axis=-1))
+    T_MIN = 0.02087 
+    T_MAX = 44.3021
+    if t < T_MIN or t > T_MAX:
+        return np.nan 
+    return t
+
+def cal_UTC_1k_C27T(resistance: float) -> float:
+    R_MIN = 1075.4868
+    R_MAX = 8997.3041
+    if resistance > R_MAX or resistance < R_MIN:
+        return np.nan 
+    x = 11.2 - np.log(resistance - 900)
+    # coefficients gathered from Origin
+    A = [-103814.911107135, 
+         320998.462071721,
+         -442483.982681105,
+         356800.653268253,
+         -184691.502447138,
+         62567.9466781999,
+         -12963.2936738625,
+         1006.3685872026,
+         285.425941956973,
+         -115.824792068013,
+         20.9088384662909,
+         -2.29703949318097,
+         0.15733704786345,
+         -0.00620651190572705,
+         1.07987457631778E-4]
+    # T = exp(Σ_i A_i * x^i)
+    t = np.exp(np.sum([A[i] * x**i for i in range(len(A))], axis=-1))
+    T_MIN = 0.02075
+    T_MAX = 44.6397
+    if t < T_MIN or t > T_MAX:
+        return np.nan 
+    return t
+
 def cal_UTC_1k_Chip01 (resistance):
     if resistance > 7350.0:
         return np.nan
